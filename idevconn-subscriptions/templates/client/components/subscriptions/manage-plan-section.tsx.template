@@ -1,0 +1,118 @@
+import { useMemo, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
+import { SubscriptionWidget } from "@teamco/isubscribe-widget-react";
+import { useSubscribeHandler } from "@/components/landing/use-subscribe-handler";
+import { useSubscriptionQuery } from "@/queries/subscription";
+
+/**
+ * Token bridge that maps the widget's `--isw-*` custom properties to the
+ * dashboard's theme tokens (oklch values defined in `apps/client/src/globals.css`
+ * under `:root`, `.light`, and `.dark`). Because the bridge references project
+ * variables via `var(--card)` etc., the widget automatically adapts when the
+ * user toggles light/dark mode — no per-theme branching needed.
+ *
+ * The dashboard theme is monochrome (zero-chroma greys + a single blue accent),
+ * so we deliberately avoid the saturated `#3B82F6` frosted-glass palette used
+ * on the landing hero. Plan cards now blend into the dashboard surface ladder
+ * (page background → card → muted) instead of fighting it.
+ */
+const TOKEN_BRIDGE: CSSProperties & Record<`--${string}`, string> = {
+  // Push the plan grid below the page header (4rem). The widget forwards
+  // the entire `style` prop to its root grid element, so `marginTop` here
+  // lands directly on `.SubscriptionWidget-module_grid__*`.
+  marginTop: "4rem",
+  "--isw-font": "inherit",
+  // Surface ladder: cards inherit the dashboard's elevated surface
+  "--isw-surface": "var(--card)",
+  "--isw-text": "var(--card-foreground)",
+  "--isw-text-strong": "var(--card-foreground)",
+  "--isw-text-muted": "var(--muted-foreground)",
+  // Primary CTA inherits the theme primary so the button matches the rest
+  // of the dashboard (auth-page Sign In, profile Save, etc.)
+  "--isw-accent": "var(--primary)",
+  "--isw-accent-hover": "var(--primary)",
+  "--isw-accent-text": "var(--primary-foreground)",
+  "--isw-accent-price-text": "var(--primary)",
+  // Semantic state colors
+  "--isw-success": "var(--primary)",
+  "--isw-error": "var(--destructive)",
+  "--isw-sale": "var(--destructive)",
+  "--isw-sale-text": "var(--primary-foreground)",
+  "--isw-trial-bg": "var(--muted)",
+  "--isw-trial-text": "var(--muted-foreground)",
+  "--isw-border": "var(--border)",
+  // Geometry: match the dashboard's radius scale
+  "--isw-radius": "var(--radius-lg)",
+  "--isw-radius-pill": "9999px",
+  "--isw-gap": "1.5rem",
+  "--isw-padding": "1.5rem",
+  // Flat / subtle elevation — no frosted-glass inside the dashboard
+  "--isw-shadow-card": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+  "--isw-shadow-card-hover": "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+};
+
+/**
+ * Authenticated plan selector. Renders the same SubscriptionWidget the landing
+ * page uses, but with the current plan marked via subscriptionOverrides so the
+ * user can see exactly what they have and what an upgrade would change. The
+ * widget owns the friendly error UX (errorMessages + fallbackNotification).
+ */
+export function ManagePlanSection() {
+  const { t } = useTranslation();
+  const handleSubscribe = useSubscribeHandler();
+  const { data } = useSubscriptionQuery();
+
+  const apiKey = import.meta.env.VITE_TENANT_KEY;
+  const apiBaseUrl = import.meta.env.VITE_SUBSCRIBE_BASE_URL
+    ? `${import.meta.env.VITE_SUBSCRIBE_BASE_URL}/public/subscriptions`
+    : undefined;
+
+  const currentPlanId = data?.subscription?.planId ?? data?.plan?.id ?? null;
+
+  const subscriptionOverrides = useMemo(() => {
+    if (!currentPlanId) return undefined;
+    return {
+      [currentPlanId]: {
+        badge: t("profile.subscription.currentBadge"),
+        // No CTA on the user's existing plan — the "Current plan" badge is
+        // the only signal they need. The widget renders a button per card
+        // unconditionally, so hide this one (preserves card height across
+        // the grid) and disable interaction.
+        buttonClassName: "!opacity-0 !pointer-events-none !cursor-default",
+      },
+    };
+  }, [currentPlanId, t]);
+
+  const labels = {
+    loading: t("landing.pricing.widget.loading"),
+    error: t("landing.pricing.widget.error"),
+    empty: t("landing.pricing.widget.empty"),
+    subscribe: t("landing.pricing.widget.subscribe"),
+    sale: t("landing.pricing.widget.sale"),
+    trial: t("landing.pricing.widget.trial"),
+    trialNote: t("landing.pricing.widget.trialNote"),
+    perPeriod: (duration: string) =>
+      t("landing.pricing.widget.perPeriod", { duration, defaultValue: "per {{duration}}" }),
+    errorMessages: {
+      invalid_key: t("landing.pricing.widget.errors.invalid_key"),
+      unavailable: t("landing.pricing.widget.errors.unavailable"),
+      network: t("landing.pricing.widget.errors.network"),
+      unknown: t("landing.pricing.widget.errors.unknown"),
+    },
+  };
+
+  if (!apiKey) {
+    return <p className="text-center text-muted-foreground">{t("landing.pricing.widget.empty")}</p>;
+  }
+
+  return (
+    <SubscriptionWidget
+      apiKey={apiKey}
+      apiBaseUrl={apiBaseUrl}
+      style={TOKEN_BRIDGE}
+      labels={labels}
+      subscriptionOverrides={subscriptionOverrides}
+      onSubscribe={handleSubscribe as never}
+    />
+  );
+}

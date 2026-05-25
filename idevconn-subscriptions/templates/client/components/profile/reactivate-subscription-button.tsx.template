@@ -1,0 +1,24 @@
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useReactivateSubscriptionMutation } from "@/queries/subscription";
+
+export function ReactivateSubscriptionButton() {
+  const { t } = useTranslation();
+  const reactivate = useReactivateSubscriptionMutation();
+
+  const onClick = async () => {
+    try {
+      await reactivate.mutateAsync();
+      toast.success(t("profile.subscription.reactivate.success"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("profile.subscription.reactivate.error"));
+    }
+  };
+
+  return (
+    <Button onClick={onClick} disabled={reactivate.isPending}>
+      {reactivate.isPending ? t("common.loading") : t("profile.subscription.reactivate.cta")}
+    </Button>
+  );
+}

@@ -1,0 +1,80 @@
+import { useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { useAuthStore } from "@/stores/auth";
+import { api } from "@/api/client";
+
+export interface WidgetSubscribeDto {
+  id: string;
+  title: string;
+  effectivePrice: number;
+  effectiveCurrency: string;
+  price: {
+    currency: string;
+    originalPrice: number;
+    duration: { type: "DAY" | "WEEK" | "MONTH" | "YEAR"; period: number };
+    isDiscounted: boolean;
+  };
+  features: Array<{ id: string; title: string }>;
+}
+
+export function useSubscribeHandler() {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const { t } = useTranslation();
+
+  return useCallback(
+    async (sub: WidgetSubscribeDto) => {
+      const isFree = sub.effectivePrice <= 0;
+
+      if (isFree) {
+        // Free plan: backend auto-assigns Starter on signup. Just go to login.
+        if (!user) {
+          void navigate({ to: "/login" });
+        } else {
+          toast.info(t("subscriptions.alreadyOnStarter", "You are already on the Starter plan."));
+        }
+        return;
+      }
+
+      if (!user) {
+        // Paid + unauthenticated: stash planId for resume-after-login flow (future task).
+        try {
+          localStorage.setItem("pendingPlanId", sub.id);
+        } catch {
+          // localStorage disabled — fine
+        }
+        // Append search params manually to avoid TanStack typed-route constraint on /login.
+        window.location.href = `/login?after=subscribe&planId=${encodeURIComponent(sub.id)}`;
+        return;
+      }
+
+      // Paid + authenticated: stash planId so success route can recover it,
+      // then create PayPal order and redirect to approveUrl.
+      try {
+        localStorage.setItem("pendingPlanId", sub.id);
+      } catch {
+        // localStorage disabled — fine
+      }
+      try {
+        const res = await api<{ orderId: string; approveUrl: string }>("/subscriptions", {
+          method: "POST",
+          body: JSON.stringify(sub),
+        });
+        if (!res.approveUrl) throw new Error("No approveUrl returned");
+        window.location.href = res.approveUrl;
+      } catch (err) {
+        const raw = err instanceof Error ? err.message : String(err);
+        // Don't leak technical/server details — use a generic message for anything that looks
+        // like an HTTP status code or internal error prefix.
+        const isGeneric = /^HTTP \d{3}$|^Error:|^Uncaught/i.test(raw);
+        const msg = isGeneric
+          ? t("subscriptions.checkoutFailed", "Failed to start checkout. Please try again.")
+          : raw;
+        toast.error(msg);
+      }
+    },
+    [navigate, user, t],
+  );
+}

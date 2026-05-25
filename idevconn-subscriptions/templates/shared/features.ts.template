@@ -1,0 +1,74 @@
+import type { FeatureValue } from "@idevconn/isubscribe-entitlements";
+
+/**
+ * PLACEHOLDER: Replace ALL entries in FEATURE_SLUGS with the feature slugs
+ * from YOUR iSubscribe dashboard. Steps:
+ *
+ *   1. Open iSubscribe dashboard → Features for each of your plans.
+ *   2. For each feature, copy the exact "slug" string (set at feature creation time).
+ *   3. Replace the warranty example slugs below with your product's slugs.
+ *   4. Group by plan tier for readability.
+ *
+ * Naming convention: the key is a SEMANTIC name in your codebase (e.g. MAX_ITEMS),
+ * the value is the EXACT slug string from iSubscribe (e.g. "up_to_10_items").
+ *
+ * The boot-time `FeatureSlugValidator` logs a warning if any declared slug is
+ * missing from the iSubscribe catalog — catches slug drift early.
+ */
+export const FEATURE_SLUGS = {
+  // ── Free / Starter tier ─────────────────────────────────────────────────
+  // PLACEHOLDER: Replace these with your Starter-tier features.
+  // Example (warranty project — replace with your product's slugs):
+  MAX_PRODUCTS: "up_to_5_products",           // example numeric cap slug
+  MANUAL_ENTRY: "manual_product_entry",        // example boolean feature slug
+  WARRANTY_ALERTS: "warranty_expiry_alerts",   // example boolean feature slug
+  INVOICE_STORAGE_MB: "invoice_storage_20_mb", // example numeric storage slug
+  SUPPORT_CHAT: "support_24_7_chat",           // example boolean feature slug
+
+  // ── Paid tier (Pro / Premium) ────────────────────────────────────────────
+  // PLACEHOLDER: Replace these with your paid-tier features.
+  // Example (warranty project — replace with your product's slugs):
+  UNLIMITED_PRODUCTS: "unlimited_products",
+  IMAGE_SEARCH_LIMIT: "image_search_limit",
+  AI_INVOICE_PARSING: "ai_invoice_parsing",
+  PRIORITY_ALERTS: "priority_alerts_30_7_1_day",
+  INVOICE_STORAGE_GB_5: "invoice_storage_5_gb",
+  NETWORK_UPTIME_100: "network_uptime_100",
+
+  // ── Premium tier ─────────────────────────────────────────────────────────
+  // PLACEHOLDER: Add your Premium/Enterprise tier features here.
+  SHARED_DASHBOARD: "shared_warranty_dashboard",
+  PRIORITY_SUPPORT: "priority_support_24_7_voice_chat",
+  BOT_ASSISTANT: "bot_assistant",
+} as const;
+
+export type FeatureSlug = (typeof FEATURE_SLUGS)[keyof typeof FEATURE_SLUGS];
+
+export type { FeatureValue };
+
+/**
+ * PLACEHOLDER: For each slug in FEATURE_SLUGS, define its semantic value:
+ *   true   = boolean gate (user either has the feature or doesn't)
+ *   number = numeric cap (e.g. 10 = up to 10 items; larger = more access)
+ *   null   = unlimited (use this for "unlimited_*" slugs)
+ *
+ * The iSubscribe dashboard controls WHICH features each plan has.
+ * This map controls WHAT each feature means in your app.
+ */
+export const FEATURE_VALUES: Record<FeatureSlug, FeatureValue> = {
+  // PLACEHOLDER: Replace all values with semantics appropriate for your product.
+  [FEATURE_SLUGS.MAX_PRODUCTS]: 5,
+  [FEATURE_SLUGS.MANUAL_ENTRY]: true,
+  [FEATURE_SLUGS.WARRANTY_ALERTS]: true,
+  [FEATURE_SLUGS.INVOICE_STORAGE_MB]: 20,
+  [FEATURE_SLUGS.SUPPORT_CHAT]: true,
+  [FEATURE_SLUGS.IMAGE_SEARCH_LIMIT]: 2,
+  [FEATURE_SLUGS.UNLIMITED_PRODUCTS]: true,  // true here; normalized to null in buildEntitlementsFromPlan
+  [FEATURE_SLUGS.AI_INVOICE_PARSING]: true,
+  [FEATURE_SLUGS.PRIORITY_ALERTS]: true,
+  [FEATURE_SLUGS.INVOICE_STORAGE_GB_5]: 5120,
+  [FEATURE_SLUGS.NETWORK_UPTIME_100]: true,
+  [FEATURE_SLUGS.SHARED_DASHBOARD]: true,
+  [FEATURE_SLUGS.PRIORITY_SUPPORT]: true,
+  [FEATURE_SLUGS.BOT_ASSISTANT]: true,
+};

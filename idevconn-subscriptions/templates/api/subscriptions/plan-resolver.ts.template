@@ -1,0 +1,39 @@
+import { Injectable, NotFoundException } from "@nestjs/common";
+import type { PlanDefinition } from "@idevconn/isubscribe-entitlements";
+import { FEATURE_VALUES, type FeatureSlug } from "@warranty/shared /* PLACEHOLDER: replace with your shared lib alias */";
+import { ISubscribeService } from "./isubscribe.service";
+
+@Injectable()
+export class PlanResolverFactory {
+  constructor(private readonly isubscribe: ISubscribeService) {}
+
+  /**
+   * Returns a planResolver that the entitlements package consumes.
+   * Returns null when the plan no longer exists in iSubscription (pkg treats
+   * null as "plan was deleted"). Propagates other errors.
+   */
+  resolver = async (planId: string): Promise<PlanDefinition | null> => {
+    let plan;
+    try {
+      plan = await this.isubscribe.getPlan(planId);
+    } catch (err) {
+      if (err instanceof NotFoundException) return null;
+      throw err;
+    }
+
+    const features: Record<string, boolean | number | null> = {};
+    for (const f of plan.features) {
+      // Stable slugs are the feature keys. Default to `true` for any
+      // feature we haven't explicitly mapped in FEATURE_VALUES — the dashboard
+      // may add new boolean unlocks before we update the code.
+      features[f.slug] = FEATURE_VALUES[f.slug as FeatureSlug] ?? true;
+    }
+
+    return {
+      id: plan.id,
+      name: plan.title,
+      features,
+      meteredKeys: [], // none metered yet; paid plans can extend
+    };
+  };
+}

@@ -1,0 +1,9 @@
+// PLACEHOLDER: Export only the items your project needs from the shared lib.
+// The warranty version re-exports everything; merge these with your existing index.ts.
+
+export * from "./features";
+export * from "./isubscribe-error-reason";
+export * from "./types";
+// PLACEHOLDER: Add your other shared lib re-exports here, e.g.:
+// export * from "./abilities";
+// export * from "./constants";

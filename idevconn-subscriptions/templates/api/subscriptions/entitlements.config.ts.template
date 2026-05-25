@@ -1,0 +1,60 @@
+// cspell:ignore Postgrest
+import { Logger } from "@nestjs/common";
+import type { EntitlementsConfig } from "@idevconn/isubscribe-entitlements";
+import { createSupabaseAdapter } from "@idevconn/isubscribe-entitlements/adapters/persistence/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PlanResolverFactory } from "./plan-resolver";
+import type { PlanDefinition } from "@idevconn/isubscribe-entitlements";
+
+export interface EntitlementsConfigArgs {
+  supabase: SupabaseClient;
+  planResolverFactory: PlanResolverFactory;
+  fallbackPlan: PlanDefinition;
+  logger: Logger;
+}
+
+/**
+ * Builds the `EntitlementsConfig` consumed by `EntitlementsModule.forRootAsync`.
+ *
+ * DEVIATION from task spec snippet:
+ *   - The spec wrapped everything inside `{ config: { ... }, isGlobal, contextResolver }`.
+ *     The real `EntitlementsModuleOptions` type (from `dist/nest/index.d.ts`) is FLAT:
+ *     `contextResolver` and `isGlobal` live at the top level of `EntitlementsModuleOptions`,
+ *     while `useFactory` / `config` carry the `EntitlementsConfig` shape.
+ *     Therefore this function returns only `EntitlementsConfig` (what `useFactory` returns),
+ *     and `contextResolver` / `isGlobal` are passed separately in `subscriptions.module.ts`.
+ *
+ *   - `cacheTtlMs: 0` — pkg default is in-memory cache; setting 0 disables it so every
+ *     read goes straight to the DB. Required for multi-process safety (audit M1).
+ *
+ *   - Logger: pkg's `Logger` interface has `info` (not `log`). All methods are optional.
+ *     We map Nest Logger's `log` → pkg's `info`.
+ *
+ *   - `incrementRpc` is configured to use `entitlements_increment_usage_capped`, which
+ *     atomically upserts the usage and throws LIMIT_EXCEEDED if the cap is reached. This
+ *     safely gates metered features like image search via the generic `consume()` flow.
+ */
+export function createEntitlementsConfig(args: EntitlementsConfigArgs): EntitlementsConfig {
+  return {
+    persistence: createSupabaseAdapter({
+      // Cast required: SupabaseClient's maybeSingle() returns a PostgrestBuilder which
+      // technically extends Promise but TS cannot prove it satisfies SupabaseClientLike's
+      // narrow Promise<{data, error}> signature. At runtime the call is compatible.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      client: args.supabase as any,
+      subscriptionsTable: "user_subscriptions",
+      usageTable: "entitlements_usage",
+      incrementRpc: "entitlements_increment_usage_capped",
+    }),
+    planResolver: args.planResolverFactory.resolver,
+    fallbackPlan: args.fallbackPlan,
+    cacheTtlMs: 0, // disable in-process cache; rely on DB for source of truth (audit M1)
+    logger: {
+      debug: (msg, meta) => args.logger.debug(meta ? `${msg} ${JSON.stringify(meta)}` : msg),
+      // pkg interface uses `info`; Nest Logger exposes `log` — bridge here
+      info: (msg, meta) => args.logger.log(meta ? `${msg} ${JSON.stringify(meta)}` : msg),
+      warn: (msg, meta) => args.logger.warn(meta ? `${msg} ${JSON.stringify(meta)}` : msg),
+      error: (msg, meta) => args.logger.error(meta ? `${msg} ${JSON.stringify(meta)}` : msg),
+    },
+  };
+}

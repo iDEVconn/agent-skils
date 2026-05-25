@@ -1,0 +1,41 @@
+import type { PlanDefinition, FeatureValue } from "@idevconn/isubscribe-entitlements";
+import { FEATURE_SLUGS, FEATURE_VALUES } from "@warranty/shared"; /* PLACEHOLDER: replace '@warranty/shared' with your shared lib alias e.g. '@myapp/shared' */
+
+/**
+ * Slugs that constitute the Starter (free) tier in the iSubscription catalog.
+ *
+ * PLACEHOLDER: Replace the list below with your product's free-tier feature slug KEYS
+ * (the keys from FEATURE_SLUGS, not the raw slug strings).
+ * Only include features that the Starter tier should have — not Pro/Premium features.
+ *
+ * This list is used ONLY as a bootstrap fallback when iSubscribe is unreachable at API boot.
+ * The live plan from iSubscribe takes precedence whenever the upstream is healthy.
+ */
+const STARTER_FEATURE_SLUGS = [
+  FEATURE_SLUGS.MAX_PRODUCTS,      // PLACEHOLDER: replace with your Starter numeric-cap slug key
+  FEATURE_SLUGS.MANUAL_ENTRY,      // PLACEHOLDER: replace or remove
+  FEATURE_SLUGS.WARRANTY_ALERTS,   // PLACEHOLDER: replace or remove
+  FEATURE_SLUGS.INVOICE_STORAGE_MB, // PLACEHOLDER: replace or remove
+  FEATURE_SLUGS.SUPPORT_CHAT,      // PLACEHOLDER: replace or remove
+] as const;
+
+/**
+ * Builds a baked-in Starter `PlanDefinition` used when the iSubscription API
+ * is unreachable or misconfigured at bootstrap. Lets the API start up and
+ * serve degraded-but-safe entitlements (free-tier limits) instead of crashing.
+ *
+ * `planId` is passed through so the entitlements package keeps any reference
+ * to the configured free-plan id consistent across snapshots.
+ */
+export function buildStarterFallbackPlan(planId: string): PlanDefinition {
+  const features: Record<string, FeatureValue> = {};
+  for (const slug of STARTER_FEATURE_SLUGS) {
+    features[slug] = FEATURE_VALUES[slug];
+  }
+  return {
+    id: planId,
+    name: "Starter (fallback)",
+    features,
+    meteredKeys: [],
+  };
+}

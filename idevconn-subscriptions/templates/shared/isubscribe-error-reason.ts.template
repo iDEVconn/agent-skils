@@ -1,0 +1,19 @@
+/**
+ * Classified reason for an iSubscribe upstream failure. Mirrors the
+ * `ISubscribeErrorReason` exported by `@teamco/isubscribe-widget-react` so the
+ * backend's `/api/subscriptions/me` response, the widget's `onError` callback,
+ * and any custom UI banners speak the same vocabulary.
+ *
+ * - `invalid_key`  — credentials rejected (HTTP 401/403, or env key missing).
+ * - `unavailable`  — upstream returned 5xx, or required config env vars are
+ *                    missing (treated as "service not configured" → unavailable).
+ * - `network`      — request never produced a response (DNS, offline, timeout).
+ * - `unknown`      — anything else (4xx other than 401/403, parse errors, etc).
+ */
+export type ISubscribeErrorReason = "invalid_key" | "unavailable" | "network" | "unknown";
+
+export interface ISubscribeUpstreamStatus {
+  ok: boolean;
+  reason: ISubscribeErrorReason | null;
+  message: string | null;
+}

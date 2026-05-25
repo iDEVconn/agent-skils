@@ -1,0 +1,40 @@
+import { CanActivate, ExecutionContext, Injectable, Inject } from "@nestjs/common";
+import { EntitlementsGuard } from "@idevconn/isubscribe-entitlements/nest";
+import { AuthService } from "../auth/auth.service";
+
+/**
+ * Drop-in replacement for the package's `EntitlementsGuard` that lets admins
+ * through unconditionally.
+ *
+ * Why: admin accounts are operator accounts. They are not customers, do not
+ * have a paid plan, and should not be blocked by feature gates while shipping
+ * the product. The intentional flow for testing subscription enforcement is
+ * to create a fresh non-admin user — never to ease the gate for the admin
+ * account itself.
+ *
+ * PLACEHOLDER: Adapt the admin check to your project's auth service.
+ * The warranty version calls this.authService.isAdmin(userId) — a DB lookup.
+ * Alternatives:
+ *   - If your project uses JWT role claims: check req.user.role === 'admin'
+ *   - If you have a CASL ability in the request: ability.can('manage', 'all')
+ *   - If you use a different admin service method: update the injection + call
+ */
+@Injectable()
+export class EntitlementsOrAdminGuard implements CanActivate {
+  constructor(
+    @Inject(EntitlementsGuard) private readonly entitlements: EntitlementsGuard,
+    // PLACEHOLDER: Replace AuthService with whatever service provides admin checks in your project.
+    private readonly authService: AuthService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context.switchToHttp().getRequest<{ user?: { id?: string } }>();
+    const userId = req?.user?.id;
+    // PLACEHOLDER: Replace this.authService.isAdmin(userId) with your project's admin check.
+    if (userId && (await this.authService.isAdmin(userId))) {
+      return true;
+    }
+    const result = this.entitlements.canActivate(context);
+    return await (result as Promise<boolean> | boolean);
+  }
+}

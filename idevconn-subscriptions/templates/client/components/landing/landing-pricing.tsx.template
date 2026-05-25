@@ -1,0 +1,142 @@
+import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
+import { SubscriptionWidget } from "@teamco/isubscribe-widget-react";
+import { useSubscribeHandler } from "./use-subscribe-handler";
+
+/**
+ * PLACEHOLDER: Customize the TOKEN_BRIDGE CSS custom properties to match your
+ * app's design system. The --isw-* vars control the widget's visual appearance.
+ * The warranty version uses a dark glassmorphism theme; adapt to your palette.
+ */
+const TOKEN_BRIDGE: CSSProperties & Record<`--${string}`, string> = {
+  "--isw-font": "Inter, sans-serif",
+  "--isw-surface": "rgba(30, 41, 59, 0.4)",
+  "--isw-text": "#F8FAFC",
+  "--isw-text-strong": "#F8FAFC",
+  "--isw-text-muted": "#94A3B8",
+  "--isw-accent": "#3B82F6",
+  "--isw-accent-hover": "#2563eb",
+  "--isw-accent-text": "#FFFFFF",
+  "--isw-accent-price-text": "#3B82F6",
+  "--isw-success": "#10B981",
+  "--isw-error": "#EF4444",
+  "--isw-sale": "#EF4444",
+  "--isw-sale-text": "#FFFFFF",
+  "--isw-trial-bg": "rgba(59, 130, 246, 0.15)",
+  "--isw-trial-text": "#93C5FD",
+  "--isw-border": "rgba(255, 255, 255, 0.05)",
+  "--isw-radius": "1rem",
+  "--isw-radius-pill": "999px",
+  "--isw-gap": "1.5rem",
+  "--isw-padding": "2rem",
+  "--isw-shadow-card": "0 4px 12px rgba(0, 0, 0, 0.25)",
+  "--isw-shadow-card-hover": "0 8px 28px rgba(59, 130, 246, 0.18)",
+};
+
+/**
+ * PLACEHOLDER: Remove or replace OVERRIDES_CSS if you don't want a "Popular"
+ * plan to have a distinct visual treatment. The warranty version uses a gold
+ * gradient for the Pro plan. Replace with your brand accent colors.
+ */
+const OVERRIDES_CSS: CSSProperties & Record<string, string> = {
+  "--isw-accent":
+    "radial-gradient(ellipse farthest-corner at right bottom, #FEDB37 0%, #FDB931 8%, #9f7928 30%, #8A6E2F 40%, transparent 80%),radial-gradient(ellipse farthest-corner at left top, #FFFFFF 0%, #FFFFAC 8%, #D1B464 25%, #5d4a1f 62.5%, #5d4a1f 100%)",
+  "--isw-accent-hover":
+    "radial-gradient(ellipse farthest-corner at right bottom, #FEDB37 0%, #FDB931 8%, #9f7928 30%, #8A6E2F 40%, transparent 80%),radial-gradient(ellipse farthest-corner at left top, #FFFFFF 0%, #FFFFAC 8%, #D1B464 25%, #5d4a1f 62.5%, #5d4a1f 100%)",
+  "--isw-accent-price-text": "gold",
+  "--isw-accent-text": "black",
+  borderColor: "gold",
+};
+
+export function LandingPricing() {
+  const { t } = useTranslation();
+  const handleSubscribe = useSubscribeHandler();
+  const apiKey = import.meta.env.VITE_TENANT_KEY;
+  const apiBaseUrl = import.meta.env.VITE_SUBSCRIBE_BASE_URL
+    ? `${import.meta.env.VITE_SUBSCRIBE_BASE_URL}/public/subscriptions`
+    : undefined;
+
+  const labels = {
+    loading: t("landing.pricing.widget.loading", "Loading plans..."),
+    error: t("landing.pricing.widget.error", "Could not load plans"),
+    empty: t("landing.pricing.widget.empty", "No plans available"),
+    subscribe: t("landing.pricing.widget.subscribe", "Subscribe"),
+    sale: t("landing.pricing.widget.sale", "Sale"),
+    trial: t("landing.pricing.widget.trial", "Free trial"),
+    trialNote: t("landing.pricing.widget.trialNote", "Trial period applies"),
+    perPeriod: (duration: string) =>
+      t("landing.pricing.widget.perPeriod", { duration, defaultValue: "per {{duration}}" }),
+    errorMessages: {
+      invalid_key: t(
+        "landing.pricing.widget.errors.invalid_key",
+        "Subscription service is misconfigured. Please contact support.",
+      ),
+      unavailable: t(
+        "landing.pricing.widget.errors.unavailable",
+        "Subscription service is temporarily unavailable. Please try again later.",
+      ),
+      network: t(
+        "landing.pricing.widget.errors.network",
+        "Network problem. Check your connection and try again.",
+      ),
+      unknown: t("landing.pricing.widget.errors.unknown", "Could not load subscription plans."),
+    },
+  };
+
+  return (
+    <section id="pricing" className="py-20 bg-[#11131b]">
+      <div className="mx-auto max-w-300 px-6">
+        <div className="text-center mb-16">
+          <span className="text-xs font-semibold tracking-widest uppercase text-[#3B82F6]">
+            {t("landing.pricing.label")}
+          </span>
+          <h2 className="mt-3 text-[32px] font-semibold leading-tight tracking-tight text-[#F8FAFC]">
+            {t("landing.pricing.title")}
+          </h2>
+          <p className="mt-4 text-[#94A3B8] max-w-xl mx-auto">
+            {t("landing.pricing.subtitle")}
+          </p>
+          <div className="w-24 h-1 bg-[#3B82F6] mx-auto mt-6 rounded-full" />
+        </div>
+
+        {apiKey ? (
+          <div style={TOKEN_BRIDGE}>
+            <SubscriptionWidget
+              apiKey={apiKey}
+              apiBaseUrl={apiBaseUrl}
+              style={TOKEN_BRIDGE}
+              labels={labels}
+              subscriptionOverrides={{
+                // PLACEHOLDER: Replace these plan IDs with your actual iSubscribe plan IDs.
+                // Get them from: iSubscribe dashboard → Plans → click each plan → copy ID.
+                // The key is the plan ID; the value controls the widget appearance for that plan.
+                "REPLACE_ME_PRO_PLAN_ID": {
+                  badge: t("landing.pricing.popular"),
+                  style: OVERRIDES_CSS,
+                  buttonText: t("landing.pricing.pro.cta", "Start Pro"),
+                },
+                "REPLACE_ME_STARTER_PLAN_ID": {
+                  buttonText: t("landing.pricing.starter.cta", "Get started free"),
+                },
+              }}
+              classNames={{
+                card: "glass-card",
+                title: "landing-pricing-title",
+                price: "landing-pricing-price",
+                button: "landing-pricing-button",
+                loader: "text-center py-8 text-[#F8FAFC]",
+                error: "text-center py-8 text-[#FCA5A5]",
+                empty: "text-center py-8 text-[#94A3B8]",
+              }}
+              onSubscribe={handleSubscribe as never}
+            />
+          </div>
+        ) : (
+          <p className="text-center text-[#94A3B8]">
+            {t("landing.pricing.widget.empty", "No plans available")}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}

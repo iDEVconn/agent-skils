@@ -1,0 +1,235 @@
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { ENTITLEMENTS } from "@idevconn/isubscribe-entitlements/nest";
+import type { Entitlements } from "@idevconn/isubscribe-entitlements";
+import { SupabaseService } from "../supabase/supabase.service";
+import { PaymentService } from "../payment/payment.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { ISubscribeService } from "./isubscribe.service";
+import { addDuration, buildEntitlementsFromPlan } from "./subscriptions.service";
+import { scheduleStage } from "./renewal-schedule";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface RenewingRow {
+  user_id: string;
+  plan_id: string;
+  provider: string;
+  status: "active" | "past_due";
+  current_period_end: string;
+  renewal_attempts: number;
+  last_renewal_notification_at: string | null;
+  cancel_at_period_end: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+@Injectable()
+export class SubscriptionsRenewalService {
+  private readonly logger = new Logger(SubscriptionsRenewalService.name);
+
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly isubscribe: ISubscribeService,
+    private readonly paymentService: PaymentService,
+    private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
+    @Inject(ENTITLEMENTS) private readonly entitlements: Entitlements,
+  ) {}
+
+  /** Runs every day at 03:00 UTC. */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async run(): Promise<void> {
+    this.logger.log("Subscription renewal cron starting");
+
+    const now = Date.now();
+    const windowUpper = new Date(now + 24 * 60 * 60 * 1000).toISOString();
+    const windowLower = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const expiryCutoff = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Pass 1: rows in [T-1, T+14) — eligible for a cadence stage.
+    const { data: rows, error: rowsErr } = await this.supabase.admin
+      .from("user_subscriptions")
+      .select(
+        "user_id, plan_id, provider, status, current_period_end, " +
+          "renewal_attempts, last_renewal_notification_at, cancel_at_period_end",
+      )
+      .in("status", ["active", "past_due"])
+      .eq("cancel_at_period_end", false)
+      .lt("current_period_end", windowUpper)
+      .gt("current_period_end", windowLower);
+
+    if (rowsErr) {
+      this.logger.error(`Failed to fetch renewing subscriptions: ${rowsErr.message}`);
+    }
+
+    // Pass 2: past_due rows past the T+14 expiry cutoff.
+    const { data: expiredCandidates, error: expErr } = await this.supabase.admin
+      .from("user_subscriptions")
+      .select("user_id, plan_id, current_period_end")
+      .eq("status", "past_due")
+      .lte("current_period_end", expiryCutoff);
+
+    if (expErr) {
+      this.logger.error(`Failed to fetch expired candidates: ${expErr.message}`);
+    }
+
+    for (const row of (expiredCandidates ?? []) as unknown as Array<{
+      user_id: string;
+      plan_id: string;
+      current_period_end: string;
+    }>) {
+      try {
+        await this.transitionToExpired(row.user_id, row.plan_id);
+      } catch (err) {
+        this.logger.error(
+          `Expired transition failed for user ${row.user_id}`,
+          err instanceof Error ? err.stack : undefined,
+        );
+      }
+    }
+
+    for (const row of (rows ?? []) as unknown as RenewingRow[]) {
+      try {
+        if (row.provider === "none") {
+          await this.renewFreeInPlace(row);
+        } else {
+          await this.handlePaidRow(row);
+        }
+      } catch (err) {
+        this.logger.error(
+          `Renewal failed for user ${row.user_id}`,
+          err instanceof Error ? err.stack : undefined,
+        );
+      }
+    }
+
+    this.logger.log("Subscription renewal cron complete");
+  }
+
+  private async renewFreeInPlace(row: RenewingRow): Promise<void> {
+    const plan = await this.isubscribe.getPlan(row.plan_id);
+    const now = new Date();
+    const periodEnd = addDuration(now, plan.price.duration.type, plan.price.duration.period);
+    await this.entitlements.saveSubscription({
+      userId: row.user_id,
+      planId: plan.id,
+      status: "active",
+      provider: "none",
+      startedAt: now,
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      entitlements: buildEntitlementsFromPlan(plan),
+    });
+    this.logger.log(`Free plan ${plan.id} renewed in-place for user ${row.user_id}`);
+  }
+
+  private async handlePaidRow(row: RenewingRow): Promise<void> {
+    const periodEndMs = new Date(row.current_period_end).getTime();
+    const daysFromEnd = Math.floor((Date.now() - periodEndMs) / (24 * 60 * 60 * 1000));
+
+    const targetAttempt = scheduleStage(daysFromEnd);
+    if (targetAttempt === null) return;
+    if (targetAttempt <= row.renewal_attempts) return; // stage already sent
+
+    // 18h throttle against accidental double-runs in the same day.
+    if (row.last_renewal_notification_at) {
+      const sinceMs = Date.now() - new Date(row.last_renewal_notification_at).getTime();
+      if (sinceMs < 18 * 60 * 60 * 1000) return;
+    }
+
+    const plan = await this.isubscribe.getPlan(row.plan_id);
+    const appBaseUrl = this.config.getOrThrow<string>("APP_BASE_URL");
+    const order = await this.paymentService.createPayPalOrder({
+      amount: plan.effectivePrice,
+      currency: plan.effectiveCurrency,
+      referenceId: `renewal:${row.user_id}:${plan.id}:${Date.now()}`,
+      // PLACEHOLDER: Update paths if your client uses different route segments.
+      returnUrl: `${appBaseUrl}/subscriptions/success`,
+      cancelUrl: `${appBaseUrl}/subscriptions/cancel`,
+    });
+
+    await this.notifications.create({
+      user_id: row.user_id,
+      type: "subscription_renewal",
+      message: this.renewalCopy(targetAttempt, plan.title, order.approveUrl),
+      channel: "web",
+    });
+
+    const newStatus: "active" | "past_due" =
+      row.status === "active" && daysFromEnd >= 0 ? "past_due" : row.status;
+
+    // Race guard: `.eq("status", row.status)` ensures we don't overwrite a row
+    // that a concurrent capture just flipped to `active`.
+    const { error: updateErr } = await this.supabase.admin
+      .from("user_subscriptions")
+      .update({
+        status: newStatus,
+        renewal_attempts: targetAttempt,
+        last_renewal_notification_at: new Date().toISOString(),
+        last_order_id: order.orderId,
+        last_order_approve_url: order.approveUrl,
+      })
+      .eq("user_id", row.user_id)
+      .eq("status", row.status);
+
+    if (updateErr) {
+      throw new Error(`Failed to record renewal attempt for ${row.user_id}: ${updateErr.message}`);
+    }
+
+    this.logger.log(
+      `Renewal stage ${targetAttempt} sent to user ${row.user_id} (status=${newStatus})`,
+    );
+  }
+
+  // PLACEHOLDER: Replace dunning notification copy with text appropriate for your product.
+  // The strings include plan title and PayPal approveUrl.
+  private renewalCopy(stage: 1 | 2 | 3 | 4, planTitle: string, approveUrl: string): string {
+    switch (stage) {
+      case 1:
+        return `Your ${planTitle} subscription renews tomorrow. Approve in PayPal: ${approveUrl}`;
+      case 2:
+        return `Your ${planTitle} subscription is overdue — renew to keep access: ${approveUrl}`;
+      case 3:
+        return `Last few days of grace on your ${planTitle} subscription. Renew: ${approveUrl}`;
+      case 4:
+        return `Final notice — your ${planTitle} subscription will end in 7 days. ${approveUrl}`;
+    }
+  }
+
+  private async transitionToExpired(userId: string, oldPlanId: string): Promise<void> {
+    const freePlanId = this.config.getOrThrow<string>("FREE_SUBSCRIPTION_PLAN_ID");
+    const starter = await this.isubscribe.getPlan(freePlanId);
+    const now = new Date();
+    const periodEnd = addDuration(now, starter.price.duration.type, starter.price.duration.period);
+
+    await this.entitlements.saveSubscription({
+      userId,
+      planId: starter.id,
+      status: "active",
+      provider: "none",
+      startedAt: now,
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      entitlements: buildEntitlementsFromPlan(starter),
+    });
+
+    const oldPlan = await this.isubscribe.getPlan(oldPlanId).catch(() => null);
+    const oldPlanTitle = oldPlan?.title ?? "previous plan";
+
+    // PLACEHOLDER: Update the expiry notification message for your product.
+    await this.notifications.create({
+      user_id: userId,
+      type: "subscription_expired",
+      message: `Your ${oldPlanTitle} subscription has expired. You are now on the Starter plan.`,
+      channel: "web",
+    });
+
+    this.logger.log(`Subscription for user ${userId} expired and fell back to Starter`);
+  }
+}

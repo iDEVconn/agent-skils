@@ -1,0 +1,188 @@
+import { useMemo, type ReactNode } from "react";
+import {
+  EntitlementsProvider as PkgEntitlementsProvider,
+  type EntitlementsSnapshot,
+} from "@idevconn/isubscribe-entitlements/react";
+import type { EntitlementsService } from "@idevconn/isubscribe-entitlements";
+import { useAuthStore } from "@/stores/auth"; /* PLACEHOLDER: replace with your auth store hook path */
+import { useAbility } from "@/abilities"; /* PLACEHOLDER: replace with your CASL ability hook, or remove if not using CASL — see reference-customization.md */
+import { useSubscriptionQuery } from "@/queries/subscription";
+import type {
+  ActiveSubscription,
+  ActivePlan,
+  FeatureValue,
+} from "@idevconn/isubscribe-entitlements";
+
+/**
+ * Admin override: a `FeatureValue` map that answers `null` (the pkg's
+ * "unlimited" sentinel) for any feature lookup. Wired in when CASL says the
+ * user has `manage all`, so admins never hit a Starter-fallback Forbidden in
+ * the UI even though they don't carry a real plan. Backend enforcement still
+ * runs through `EntitlementsOrAdminGuard` for defense-in-depth.
+ *
+ * PLACEHOLDER: If your project doesn't use CASL, remove ADMIN_ALL_FEATURES
+ * and the isAdmin branch below, or replace with your own admin detection.
+ */
+const ADMIN_ALL_FEATURES = new Proxy({} as Record<string, FeatureValue>, {
+  get: () => null,
+  has: () => true,
+});
+
+/**
+ * Coerce ISO-string dates in the wire-format subscription to the Date objects
+ * that ActiveSubscription demands.
+ */
+function toActiveSubscription(
+  raw: NonNullable<ReturnType<typeof useSubscriptionQuery>["data"]>["subscription"],
+): ActiveSubscription | null {
+  if (!raw) return null;
+  return {
+    ...raw,
+    startedAt: new Date(raw.startedAt),
+    currentPeriodStart: new Date(raw.currentPeriodStart),
+    currentPeriodEnd: new Date(raw.currentPeriodEnd),
+  };
+}
+
+/**
+ * Build a thin EntitlementsService backed entirely by the React Query cache.
+ */
+function createClientEntitlementsService(snapshot: EntitlementsSnapshot): EntitlementsService {
+  const getActiveSubscription = (): Promise<ActiveSubscription> => {
+    const sub = snapshot.subscription;
+    if (!sub) return Promise.reject(new Error("No active subscription"));
+    return Promise.resolve(sub);
+  };
+
+  const getActivePlan = (): Promise<ActivePlan> => {
+    const plan = snapshot.plan;
+    if (!plan) return Promise.reject(new Error("No plan in snapshot"));
+    return Promise.resolve(plan);
+  };
+
+  const getEntitlements = (): Promise<Record<string, FeatureValue>> =>
+    Promise.resolve(snapshot.entitlements ?? {});
+
+  const has = (feature: string): Promise<boolean> => {
+    const value = snapshot.entitlements?.[feature];
+    if (value === true || value === null) return Promise.resolve(true);
+    if (typeof value === "number") return Promise.resolve(value > 0);
+    return Promise.resolve(false);
+  };
+
+  const limit = (feature: string): Promise<number | null> => {
+    const value = snapshot.entitlements?.[feature];
+    if (typeof value === "number") return Promise.resolve(value);
+    if (value === null) return Promise.resolve(null);
+    return Promise.resolve(null);
+  };
+
+  const usage = async (_feature: string): Promise<number> => {
+    throw new Error(
+      "usage() not implemented in V1 — no metered features. " +
+        "Add /api/subscriptions/usage/:feature endpoint when introducing metered usage.",
+    );
+  };
+
+  const check = async (feature: string, amount = 1): Promise<boolean> => {
+    const used = await usage(feature).catch(() => 0);
+    const lim = await limit(feature);
+    if (lim === null) return true; // unlimited
+    if (lim === undefined) return false;
+    return used + amount <= lim;
+  };
+
+  const consume = async (_feature: string, _amount = 1): Promise<void> => {
+    throw new Error(
+      "consume() not implemented in V1 — no metered features. " +
+        "Add /api/subscriptions/consume/:feature endpoint when introducing metered usage.",
+    );
+  };
+
+  const require = async (feature: string): Promise<void> => {
+    const allowed = await has(feature);
+    if (!allowed) throw new Error(`Feature "${feature}" not allowed on current plan`);
+  };
+
+  return {
+    has,
+    require,
+    limit,
+    usage,
+    check,
+    consume,
+    getPlan: getActivePlan,
+    getSubscription: getActiveSubscription,
+    getEntitlements,
+  };
+}
+
+interface Props {
+  children: ReactNode;
+}
+
+export function EntitlementsProvider({ children }: Props) {
+  const userId = useAuthStore((s) => s.user?.id); /* PLACEHOLDER: adapt to your auth store shape */
+  const ability = useAbility(); /* PLACEHOLDER: remove if not using CASL */
+  const isAdmin = ability.can("manage", "all"); /* PLACEHOLDER: replace with your admin check */
+  const { data, isLoading } = useSubscriptionQuery();
+
+  const activeSubscription = useMemo(
+    () => toActiveSubscription(data?.subscription ?? null),
+    [data?.subscription],
+  );
+
+  const initialSnapshot: Partial<EntitlementsSnapshot> | undefined = useMemo(() => {
+    if (isLoading && !data && !isAdmin) {
+      return { status: "loading" };
+    }
+    if (isAdmin) {
+      return {
+        status: "ready",
+        subscription: activeSubscription,
+        plan: data?.plan ?? null,
+        entitlements: ADMIN_ALL_FEATURES,
+        error: null,
+      };
+    }
+    if (!data) return undefined;
+    return {
+      status: "ready",
+      subscription: activeSubscription,
+      plan: data.plan ?? null,
+      entitlements: data.entitlements ?? {},
+      error: null,
+    };
+  }, [data, isLoading, activeSubscription, isAdmin]);
+
+  const serviceSnapshot: EntitlementsSnapshot = useMemo(
+    () => ({
+      status: initialSnapshot?.status ?? "idle",
+      subscription: initialSnapshot?.subscription ?? null,
+      plan: initialSnapshot?.plan ?? null,
+      entitlements: initialSnapshot?.entitlements ?? {},
+      error: initialSnapshot?.error ?? null,
+    }),
+    [initialSnapshot],
+  );
+
+  const service = useMemo(
+    () => createClientEntitlementsService(serviceSnapshot),
+    [serviceSnapshot],
+  );
+
+  /**
+   * key={userId ?? "anon"} — remounts the entire pkg provider when user identity
+   * changes, wiping any previously-cached entitlements snapshot. Prevents
+   * cross-user state leaks after sign-out → sign-in in the same browser tab.
+   */
+  return (
+    <PkgEntitlementsProvider
+      key={userId ?? "anon"}
+      service={service}
+      initialSnapshot={initialSnapshot}
+    >
+      {children}
+    </PkgEntitlementsProvider>
+  );
+}

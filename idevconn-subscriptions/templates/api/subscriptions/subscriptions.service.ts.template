@@ -1,0 +1,512 @@
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { ENTITLEMENTS } from "@idevconn/isubscribe-entitlements/nest";
+import type { Entitlements, ActiveSubscription } from "@idevconn/isubscribe-entitlements";
+import {
+  FEATURE_SLUGS,
+  FEATURE_VALUES,
+  type FeatureSlug,
+  type ISubscribeUpstreamStatus,
+} from "@warranty/shared"; /* PLACEHOLDER: replace '@warranty/shared' with your shared lib alias e.g. '@myapp/shared' */
+import { SupabaseService } from "../supabase/supabase.service";
+import { PaymentService } from "../payment/payment.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { ISubscribeService } from "./isubscribe.service";
+import type { ISubscribePlan } from "./isubscribe.types";
+import type { CreateSubscriptionDto, CaptureOrderDto } from "./dto";
+import type { PaymentHistoryRow, OrderHistoryItem, OrdersResponse } from "./payment-history.types";
+
+// ---------------------------------------------------------------------------
+// Period helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a new Date offset from `from` by the given duration.
+ * Exported so tests can reference it directly for boundary checks.
+ */
+export function addDuration(
+  from: Date,
+  type: "DAY" | "WEEK" | "MONTH" | "YEAR",
+  period: number,
+): Date {
+  const d = new Date(from);
+  switch (type) {
+    case "DAY":
+      d.setUTCDate(d.getUTCDate() + period);
+      return d;
+    case "WEEK":
+      d.setUTCDate(d.getUTCDate() + period * 7);
+      return d;
+    case "MONTH":
+      d.setUTCMonth(d.getUTCMonth() + period);
+      return d;
+    case "YEAR":
+      d.setUTCFullYear(d.getUTCFullYear() + period);
+      return d;
+  }
+}
+
+/**
+ * Builds the snapshot entitlements map from an iSubscription plan.
+ * Mirrors PlanResolverFactory.resolver — storing the snapshot here means
+ * read-only views can skip a resolver round-trip.
+ */
+export function buildEntitlementsFromPlan(
+  plan: ISubscribePlan,
+): Record<string, boolean | number | null> {
+  const features: Record<string, boolean | number | null> = {};
+  for (const f of plan.features) {
+    features[f.slug] = FEATURE_VALUES[f.slug as FeatureSlug] ?? true;
+  }
+
+  // PLACEHOLDER: Adapt the normalization logic below to your product's feature slugs.
+  // The warranty version normalizes UNLIMITED_PRODUCTS → MAX_PRODUCTS and INVOICE_STORAGE_GB_5.
+  // Replace with whichever of YOUR slugs represent "unlimited" and numeric caps.
+
+  // Normalize UNLIMITED_ITEMS to MAX_ITEMS (example — update slugs to match your product).
+  if (features[FEATURE_SLUGS.UNLIMITED_PRODUCTS]) {
+    features[FEATURE_SLUGS.MAX_PRODUCTS] = null;
+  } else if (!(FEATURE_SLUGS.MAX_PRODUCTS in features)) {
+    features[FEATURE_SLUGS.MAX_PRODUCTS] = 0;
+  }
+
+  // Normalize storage cap — higher value wins across plans.
+  const candidates = [
+    features[FEATURE_SLUGS.INVOICE_STORAGE_MB],
+    features[FEATURE_SLUGS.INVOICE_STORAGE_GB_5],
+  ].filter((v): v is number => typeof v === "number");
+  if (candidates.length > 0) {
+    features[FEATURE_SLUGS.INVOICE_STORAGE_MB] = Math.max(...candidates);
+  }
+
+  return features;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+@Injectable()
+export class SubscriptionsService {
+  private readonly logger = new Logger(SubscriptionsService.name);
+
+  constructor(
+    @Inject(ENTITLEMENTS) private readonly entitlements: Entitlements,
+    private readonly isubscribe: ISubscribeService,
+    private readonly config: ConfigService,
+    private readonly supabaseService: SupabaseService,
+    private readonly paymentService: PaymentService,
+    private readonly notifications: NotificationsService,
+  ) {}
+
+  /**
+   * Auto-assign the free Starter plan to a freshly-registered user.
+   *
+   * - Idempotent: if the user already has an active subscription row, returns null.
+   * - Callers (AuthService.register) MUST await this and roll back the auth user on failure.
+   * - Throws when iSubscription API is unreachable so the caller can fail-fast.
+   */
+  async assignFreePlan(userId: string): Promise<ActiveSubscription | null> {
+    const planId = this.config.getOrThrow<string>("FREE_SUBSCRIPTION_PLAN_ID");
+
+    // Idempotency check — getSubscription() throws NoActiveSubscriptionError when absent.
+    const existing = await this.entitlements
+      .for({ userId })
+      .getSubscription()
+      .catch(() => null);
+    if (existing) {
+      this.logger.debug(`User ${userId} already has subscription ${existing.planId} — skipping`);
+      return null;
+    }
+
+    // Fetch the raw plan to compute period dates and snapshot entitlements.
+    let plan: ISubscribePlan;
+    try {
+      plan = await this.isubscribe.getPlan(planId);
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        // Misconfiguration — surface loudly so ops notices immediately.
+        throw new Error(`FREE_SUBSCRIPTION_PLAN_ID="${planId}" does not exist in iSubscription`);
+      }
+      // Network / other errors propagate so register fails closed.
+      throw err;
+    }
+
+    const now = new Date();
+    const periodEnd = addDuration(now, plan.price.duration.type, plan.price.duration.period);
+
+    const sub: ActiveSubscription = {
+      userId,
+      planId: plan.id,
+      status: "active",
+      provider: "none",
+      startedAt: now,
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      entitlements: buildEntitlementsFromPlan(plan),
+    };
+
+    await this.entitlements.saveSubscription(sub);
+    this.logger.log(`Assigned free Starter plan to user ${userId}`);
+    return sub;
+  }
+
+  /**
+   * Creates a PayPal order for a paid subscription plan.
+   *
+   * - Re-fetches the plan from iSubscription so price/currency are server-side values.
+   *   The DTO comes from a public-facing widget callback — any field (incl. effectivePrice)
+   *   is attacker-controlled. Only dto.id is trusted (validated by the fetch itself).
+   * - Rejects free-tier plans (effectivePrice === 0) with a 400.
+   * - Calls ensureSubscriptionRow() so the .update() that records last_order_id always
+   *   has a row to write to.
+   * - Stashes last_order_id + last_order_approve_url on the user's row so
+   *   /capture can verify the orderId (audit #2 hardening).
+   * - Does NOT change subscription status — current plan remains active until capture succeeds.
+   */
+  async createPaidOrder(
+    userId: string,
+    dto: CreateSubscriptionDto,
+  ): Promise<{ orderId: string; approveUrl: string }> {
+    let plan: ISubscribePlan;
+    try {
+      plan = await this.isubscribe.getPlan(dto.id);
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new BadRequestException(`Plan ${dto.id} no longer exists`);
+      }
+      throw err;
+    }
+
+    if (plan.effectivePrice <= 0) {
+      throw new BadRequestException("Free plan is assigned automatically on signup");
+    }
+
+    await this.ensureSubscriptionRow(userId);
+
+    const appBaseUrl = this.config.getOrThrow<string>("APP_BASE_URL");
+    const order = await this.paymentService.createPayPalOrder({
+      amount: plan.effectivePrice,
+      currency: plan.effectiveCurrency,
+      referenceId: `sub:${userId}:${plan.id}:${Date.now()}`,
+      // PLACEHOLDER: Update these paths if your client uses different route segments.
+      returnUrl: `${appBaseUrl}/subscriptions/success`,
+      cancelUrl: `${appBaseUrl}/subscriptions/cancel`,
+    });
+
+    const { data, error } = await this.supabaseService.admin
+      .from("user_subscriptions")
+      .update({
+        last_order_id: order.orderId,
+        last_order_approve_url: order.approveUrl,
+      })
+      .eq("user_id", userId)
+      .select("user_id")
+      .maybeSingle();
+
+    if (error) {
+      throw new InternalServerErrorException(`Failed to record order: ${error.message}`);
+    }
+    if (!data) {
+      throw new InternalServerErrorException("No subscription row to attach order to");
+    }
+
+    this.logger.log(`Created PayPal order ${order.orderId} for user ${userId}, plan ${plan.id}`);
+    return { orderId: order.orderId, approveUrl: order.approveUrl };
+  }
+
+  /**
+   * Guarantees the caller has at least an active Starter row in user_subscriptions.
+   * Idempotent — no-ops if a subscription already exists. Used before updates that
+   * assume row presence (e.g. recording PayPal order ids on the row).
+   */
+  private async ensureSubscriptionRow(userId: string): Promise<void> {
+    await this.assignFreePlan(userId);
+  }
+
+  /**
+   * Captures a PayPal order and upgrades the user's subscription.
+   *
+   * Audit #2 hardening:
+   *   1. Verifies the caller-supplied orderId matches the stored last_order_id.
+   *   2. Re-fetches the plan from iSubscription at capture time — never trusts
+   *      caller-supplied entitlement data.
+   */
+  async captureOrder(userId: string, dto: CaptureOrderDto): Promise<ActiveSubscription> {
+    const { data: row, error: fetchErr } = await this.supabaseService.admin
+      .from("user_subscriptions")
+      .select("last_order_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      throw new InternalServerErrorException(`Lookup failed: ${fetchErr.message}`);
+    }
+    if (!row || row.last_order_id !== dto.orderId) {
+      throw new BadRequestException("orderId does not match the pending order for this user");
+    }
+
+    const captured = await this.paymentService.capturePayPalOrder(
+      dto.orderId,
+      `cap:${userId}:${dto.orderId}`,
+    );
+    if (captured.status !== "COMPLETED") {
+      throw new BadRequestException(`Capture not completed: status=${captured.status}`);
+    }
+
+    let plan: ISubscribePlan;
+    try {
+      plan = await this.isubscribe.getPlan(dto.planId);
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new BadRequestException(`Plan ${dto.planId} no longer exists`);
+      }
+      throw err;
+    }
+
+    const now = new Date();
+    const periodEnd = addDuration(now, plan.price.duration.type, plan.price.duration.period);
+
+    const sub: ActiveSubscription = {
+      userId,
+      planId: plan.id,
+      status: "active",
+      provider: "paypal",
+      providerSubscriptionId: dto.orderId,
+      startedAt: now,
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      entitlements: buildEntitlementsFromPlan(plan),
+    };
+
+    await this.entitlements.saveSubscription(sub);
+
+    const { error: historyErr } = await this.supabaseService.admin.from("payment_history").insert({
+      user_id: userId,
+      kind: "plan",
+      provider: "paypal",
+      provider_order_id: dto.orderId,
+      plan_id: plan.id,
+      amount: plan.effectivePrice,
+      currency: plan.effectiveCurrency,
+    });
+
+    if (historyErr && historyErr.code !== "23505") {
+      this.logger.error(`payment_history insert failed: ${historyErr.message}`);
+    }
+
+    await this.supabaseService.admin
+      .from("user_subscriptions")
+      .update({
+        last_order_id: null,
+        last_order_approve_url: null,
+        renewal_attempts: 0,
+        last_renewal_notification_at: null,
+      })
+      .eq("user_id", userId);
+
+    this.logger.log(`Captured PayPal order ${dto.orderId} for user ${userId}, plan ${plan.id}`);
+    return sub;
+  }
+
+  /**
+   * Returns a paginated list of payment history rows for a user, with plan
+   * names resolved from the cached iSubscription catalog.
+   */
+  async listOrders(userId: string, limit: number, offset: number): Promise<OrdersResponse> {
+    const { data, count, error } = await this.supabaseService.admin
+      .from("payment_history")
+      .select("*", { count: "exact" })
+      .eq("user_id", userId)
+      .order("captured_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      throw new InternalServerErrorException(`Failed to list orders: ${error.message}`);
+    }
+
+    const rows = (data ?? []) as PaymentHistoryRow[];
+    const total = count ?? 0;
+
+    const plans = await this.isubscribe.getPlans().catch(() => []);
+    const planTitleById = new Map(plans.map((p) => [p.id, p.title]));
+
+    const items: OrderHistoryItem[] = rows.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      provider: r.provider,
+      providerOrderIdSuffix: r.provider_order_id ? r.provider_order_id.slice(-6) : null,
+      planId: r.plan_id,
+      planName: r.plan_id ? (planTitleById.get(r.plan_id) ?? null) : null,
+      amount: Number(r.amount),
+      currency: r.currency,
+      capturedAt: r.captured_at,
+    }));
+
+    return {
+      items,
+      total,
+      hasMore: offset + items.length < total,
+    };
+  }
+
+  /**
+   * Returns the current subscription, active plan, and entitlements map for a user.
+   * `billing.cancelAtPeriodEnd` is read from `user_subscriptions` because
+   * the entitlements pkg's `ActiveSubscription` shape does not carry it.
+   */
+  async getMySubscription(userId: string): Promise<{
+    subscription: ActiveSubscription | null;
+    plan: unknown;
+    entitlements: unknown;
+    upstream: ISubscribeUpstreamStatus;
+    billing: { cancelAtPeriodEnd: boolean };
+  }> {
+    const ctx = { userId };
+    const [subscription, plan, entitlements, billingRow, upstream] = await Promise.all([
+      this.entitlements
+        .for(ctx)
+        .getSubscription()
+        .catch(() => null),
+      this.entitlements.for(ctx).getPlan(),
+      this.entitlements.for(ctx).getEntitlements(),
+      this.supabaseService.admin
+        .from("user_subscriptions")
+        .select("cancel_at_period_end")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      this.isubscribe.getUpstreamStatus(),
+    ]);
+    return {
+      subscription,
+      plan,
+      entitlements,
+      upstream,
+      billing: { cancelAtPeriodEnd: !!billingRow.data?.cancel_at_period_end },
+    };
+  }
+
+  /**
+   * Flags the user's current paid subscription as `cancel_at_period_end=true`.
+   * Idempotent: cancelling an already-cancelled subscription is a no-op.
+   */
+  async cancel(userId: string): Promise<{
+    cancelAtPeriodEnd: true;
+    currentPeriodEnd: string | null;
+  }> {
+    const { data: row, error: fetchErr } = await this.supabaseService.admin
+      .from("user_subscriptions")
+      .select("plan_id, provider, status, current_period_end, cancel_at_period_end")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (fetchErr) {
+      throw new InternalServerErrorException(`Lookup failed: ${fetchErr.message}`);
+    }
+    if (!row) {
+      throw new NotFoundException("No subscription to cancel");
+    }
+    if (row.provider === "none") {
+      throw new BadRequestException("Free plan cannot be cancelled");
+    }
+    if (row.status !== "active") {
+      throw new BadRequestException(`Cannot cancel subscription in status "${row.status}"`);
+    }
+    if (row.cancel_at_period_end) {
+      return { cancelAtPeriodEnd: true, currentPeriodEnd: row.current_period_end };
+    }
+
+    const { error: updateErr } = await this.supabaseService.admin
+      .from("user_subscriptions")
+      .update({
+        cancel_at_period_end: true,
+        last_order_id: null,
+        last_order_approve_url: null,
+      })
+      .eq("user_id", userId);
+    if (updateErr) {
+      throw new InternalServerErrorException(`Failed to cancel: ${updateErr.message}`);
+    }
+
+    const endsOn = row.current_period_end
+      ? new Date(row.current_period_end).toISOString().slice(0, 10)
+      : "the end of your billing period";
+    // PLACEHOLDER: Update the notification message for your product.
+    await this.notifications.create({
+      user_id: userId,
+      type: "subscription_cancelled",
+      message: `Your subscription has been cancelled and will end on ${endsOn}. You can reactivate any time before then.`,
+      channel: "web",
+    });
+
+    this.logger.log(`User ${userId} cancelled subscription (ends ${row.current_period_end})`);
+    return { cancelAtPeriodEnd: true, currentPeriodEnd: row.current_period_end };
+  }
+
+  /**
+   * Clears `cancel_at_period_end` on the user's subscription if still within the paid period.
+   */
+  async reactivate(userId: string): Promise<{ cancelAtPeriodEnd: false }> {
+    const { data: row, error: fetchErr } = await this.supabaseService.admin
+      .from("user_subscriptions")
+      .select("provider, status, cancel_at_period_end, current_period_end")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (fetchErr) {
+      throw new InternalServerErrorException(`Lookup failed: ${fetchErr.message}`);
+    }
+    if (!row) {
+      throw new NotFoundException("No subscription to reactivate");
+    }
+    if (!row.cancel_at_period_end) {
+      throw new BadRequestException("Subscription is not pending cancellation");
+    }
+    if (row.current_period_end && new Date(row.current_period_end).getTime() <= Date.now()) {
+      throw new BadRequestException(
+        "Subscription period has already ended. Please choose a plan to resubscribe.",
+      );
+    }
+
+    const { error: updateErr } = await this.supabaseService.admin
+      .from("user_subscriptions")
+      .update({ cancel_at_period_end: false })
+      .eq("user_id", userId);
+    if (updateErr) {
+      throw new InternalServerErrorException(`Failed to reactivate: ${updateErr.message}`);
+    }
+
+    // PLACEHOLDER: Update the notification message for your product.
+    await this.notifications.create({
+      user_id: userId,
+      type: "subscription_reactivated",
+      message: "Your subscription has been reactivated.",
+      channel: "web",
+    });
+
+    this.logger.log(`User ${userId} reactivated subscription`);
+    return { cancelAtPeriodEnd: false };
+  }
+
+  /**
+   * Returns true when the user is on an active paid subscription that has NOT
+   * been flagged for cancellation. Used by profile.deleteAccount() to enforce
+   * "cancel first" before wiping the user.
+   */
+  async hasActivePaidSubscription(userId: string): Promise<boolean> {
+    const { data } = await this.supabaseService.admin
+      .from("user_subscriptions")
+      .select("provider, status, cancel_at_period_end")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!data) return false;
+    if (data.provider === "none") return false;
+    if (data.status !== "active") return false;
+    return !data.cancel_at_period_end;
+  }
+}

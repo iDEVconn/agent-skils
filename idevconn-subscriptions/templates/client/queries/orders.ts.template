@@ -1,0 +1,51 @@
+import {
+  queryOptions,
+  infiniteQueryOptions,
+  useQuery,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
+import { api } from "@/api/client";
+
+export interface OrderHistoryItem {
+  id: string;
+  kind: "plan" | "addon" | "refund";
+  provider: string;
+  providerOrderIdSuffix: string | null;
+  planId: string | null;
+  planName: string | null;
+  amount: number;
+  currency: string;
+  capturedAt: string;
+}
+
+export interface OrdersResponse {
+  items: OrderHistoryItem[];
+  total: number;
+  hasMore: boolean;
+}
+
+const DEFAULT_PAGE_SIZE = 50;
+
+export const ordersQueryOptions = (limit = 5) =>
+  queryOptions({
+    queryKey: ["orders", { limit }],
+    queryFn: () => api<OrdersResponse>(`/subscriptions/orders?limit=${limit}&offset=0`),
+  });
+
+export function useOrdersQuery(limit?: number) {
+  return useQuery(ordersQueryOptions(limit));
+}
+
+export const ordersInfiniteOptions = (pageSize = DEFAULT_PAGE_SIZE) =>
+  infiniteQueryOptions({
+    queryKey: ["orders", "infinite", { pageSize }],
+    queryFn: ({ pageParam = 0 }) =>
+      api<OrdersResponse>(`/subscriptions/orders?limit=${pageSize}&offset=${pageParam}`),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+      lastPage.hasMore ? lastPageParam + pageSize : undefined,
+  });
+
+export function useOrdersInfiniteQuery(pageSize?: number) {
+  return useInfiniteQuery(ordersInfiniteOptions(pageSize));
+}

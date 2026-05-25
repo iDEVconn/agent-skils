@@ -1,0 +1,106 @@
+import { Body, Controller, Get, HttpCode, Post, Query, Request } from "@nestjs/common";
+import { SubscriptionsService } from "./subscriptions.service";
+import { CreateSubscriptionDto, CaptureOrderDto, ListOrdersDto } from "./dto";
+import type { OrdersResponse } from "./payment-history.types";
+
+interface AuthedRequest {
+  user: { id: string; email?: string; role?: string };
+}
+
+@Controller("subscriptions")
+export class SubscriptionsController {
+  constructor(private readonly service: SubscriptionsService) {}
+
+  /**
+   * POST /api/subscriptions
+   *
+   * Receives the iSubscription widget callback DTO. Rejects free-tier plans
+   * (effectivePrice === 0). Creates a PayPal order and stashes the orderId on
+   * the user's subscription row for verification at capture time.
+   *
+   * Returns { orderId, approveUrl }.
+   */
+  @Post()
+  @HttpCode(200)
+  create(@Request() req: AuthedRequest, @Body() dto: CreateSubscriptionDto) {
+    return this.service.createPaidOrder(req.user.id, dto);
+  }
+
+  /**
+   * POST /api/subscriptions/capture
+   *
+   * Captures a PayPal order after the user approves it.
+   * Body: { orderId, planId }
+   *
+   * - Verifies orderId matches the stored last_order_id (audit #2).
+   * - Re-resolves plan from iSubscription (no caller-supplied entitlements).
+   * - On COMPLETED, saves the upgraded ActiveSubscription via entitlements.
+   *
+   * Returns the new ActiveSubscription.
+   */
+  @Post("capture")
+  @HttpCode(200)
+  capture(@Request() req: AuthedRequest, @Body() dto: CaptureOrderDto) {
+    return this.service.captureOrder(req.user.id, dto);
+  }
+
+  /**
+   * GET /api/subscriptions/me
+   *
+   * Returns { subscription, plan, entitlements, upstream, billing } for the
+   * authenticated user. Falls back gracefully if no active subscription exists.
+   */
+  @Get("me")
+  me(@Request() req: AuthedRequest) {
+    return this.service.getMySubscription(req.user.id);
+  }
+
+  /**
+   * POST /api/subscriptions/cancel
+   *
+   * Flags the user's current paid subscription as cancel-at-period-end. The
+   * user keeps full access until current_period_end; after that the renewal
+   * cron skips this row and entitlements drop to the Starter fallback.
+   *
+   * No PayPal API call — we do not use billing agreements (only one-shot
+   * orders), so cancellation is purely a DB flag.
+   */
+  @Post("cancel")
+  @HttpCode(200)
+  cancel(@Request() req: AuthedRequest) {
+    return this.service.cancel(req.user.id);
+  }
+
+  /**
+   * POST /api/subscriptions/reactivate
+   *
+   * Clears the cancel_at_period_end flag if the user is still within the
+   * paid period. Renewal cron will pick the row up again on the next run.
+   */
+  @Post("reactivate")
+  @HttpCode(200)
+  reactivate(@Request() req: AuthedRequest) {
+    return this.service.reactivate(req.user.id);
+  }
+
+  /**
+   * GET /api/subscriptions/orders
+   *
+   * Returns paginated payment history for the authenticated user.
+   * Query params: limit (default 20, clamped [1, 100]), offset (default 0, min 0).
+   * Params arrive as strings (no class-validator pipe) and are parsed manually.
+   */
+  @Get("orders")
+  async listOrders(
+    @Request() req: AuthedRequest,
+    @Query() query: ListOrdersDto,
+  ): Promise<OrdersResponse> {
+    const rawLimit = Number(query.limit);
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(100, Math.floor(rawLimit))) : 20;
+
+    const rawOffset = Number(query.offset);
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
+
+    return this.service.listOrders(req.user.id, limit, offset);
+  }
+}

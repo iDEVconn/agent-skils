@@ -1,0 +1,22 @@
+import { Injectable } from "@nestjs/common";
+import type { ExecutionContext } from "@nestjs/common";
+import type { EntitlementsContext } from "@idevconn/isubscribe-entitlements";
+import type { NestEntitlementsContextResolver } from "@idevconn/isubscribe-entitlements/nest";
+
+/**
+ * Context resolver injected into `EntitlementsModule`.
+ *
+ * SECURITY (audit #1): reads ONLY `req.user.id` which is set by `AuthGuard` from the
+ * validated Supabase JWT. Never falls back to `x-user-id` / `x-tenant-id` headers —
+ * those are attacker-controlled inputs.
+ */
+@Injectable()
+export class SecureUserContextResolver implements NestEntitlementsContextResolver {
+  resolve(executionCtx: ExecutionContext): EntitlementsContext {
+    const req = executionCtx.switchToHttp().getRequest<{ user?: { id?: string } }>();
+    if (!req?.user?.id) {
+      throw new Error("Entitlements: no authenticated user on request");
+    }
+    return { userId: req.user.id };
+  }
+}

@@ -1,0 +1,140 @@
+import { Module, Logger } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { HttpModule } from "@nestjs/axios";
+import { CacheModule } from "@nestjs/cache-manager";
+import { EntitlementsModule } from "@idevconn/isubscribe-entitlements/nest";
+import { APP_FILTER } from "@nestjs/core";
+
+import { SupabaseModule } from "../supabase/supabase.module";
+import { SupabaseService } from "../supabase/supabase.service";
+import { PaymentModule } from "../payment/payment.module";
+import { PaymentService } from "../payment/payment.service";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { ISubscribeService } from "./isubscribe.service";
+import { PlanResolverFactory } from "./plan-resolver";
+import { SubscriptionsService } from "./subscriptions.service";
+import { SubscriptionsRenewalService } from "./subscriptions-renewal.service";
+import { SubscriptionsController } from "./subscriptions.controller";
+import { createEntitlementsConfig } from "./entitlements.config";
+import { EntitlementsExceptionFilter } from "./entitlements-exception.filter";
+import { FeatureSlugValidator } from "./feature-slug-validator";
+import { buildStarterFallbackPlan } from "./fallback-plan";
+import { SecureUserContextResolver } from "./secure-user-context.resolver";
+
+/**
+ * Internal helper module that wires ISubscribeService + PlanResolverFactory together
+ * with their HTTP/cache/config dependencies, and exports them for injection.
+ *
+ * This exists because `EntitlementsModule.forRootAsync` (from the pkg) only respects
+ * `imports` and `inject` in its options — a `providers` key is silently ignored by the
+ * pkg's `forRoot` implementation. We therefore bundle these services in a real NestJS
+ * module and list it in `forRootAsync.imports` so they become resolvable.
+ */
+@Module({
+  imports: [
+    HttpModule.register({ timeout: 10_000 }),
+    CacheModule.register({ ttl: 60 * 60 * 1000 }),
+    ConfigModule,
+    SupabaseModule,
+  ],
+  providers: [ISubscribeService, PlanResolverFactory],
+  exports: [ISubscribeService, PlanResolverFactory],
+})
+class ISubscribeInternalModule {}
+
+@Module({
+  imports: [
+    HttpModule.register({ timeout: 10_000 }),
+    CacheModule.register({ ttl: 60 * 60 * 1000 }),
+    ConfigModule,
+    SupabaseModule,
+    PaymentModule,
+    NotificationsModule,
+    EntitlementsModule.forRootAsync({
+      // Include the internal module so SupabaseService, ISubscribeService, and
+      // PlanResolverFactory are all resolvable in the forRootAsync DI context.
+      imports: [SupabaseModule, ISubscribeInternalModule],
+      inject: [SupabaseService, PlanResolverFactory, ConfigService],
+      // Typed as `unknown[]` by the pkg's EntitlementsModuleOptions — cast inline.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      useFactory: async (...args: any[]) => {
+        const [supabase, planResolverFactory, config]: [
+          SupabaseService,
+          PlanResolverFactory,
+          ConfigService,
+        ] = args as [SupabaseService, PlanResolverFactory, ConfigService];
+        const logger = new Logger("Entitlements");
+
+        // Plan id may also be missing in misconfigured envs — fall back to a stable
+        // placeholder so we can still serve degraded entitlements instead of crashing.
+        const planId = config.get<string>("FREE_SUBSCRIPTION_PLAN_ID") ?? "starter-fallback";
+
+        // Try to resolve the live plan from iSubscription. If the upstream is
+        // unreachable / misconfigured / the plan id is unknown, use the baked-in
+        // Starter fallback so the API can still boot. The entitlements package will
+        // then serve free-tier limits until the upstream recovers.
+        let fallbackPlan;
+        try {
+          const resolved = await planResolverFactory.resolver(planId);
+          if (resolved) {
+            fallbackPlan = resolved;
+          } else {
+            logger.warn(
+              `Free plan "${planId}" not found in iSubscription — using baked-in Starter fallback`,
+            );
+            fallbackPlan = buildStarterFallbackPlan(planId);
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          logger.warn(
+            `Could not resolve free plan from iSubscription upstream (${message}) — using baked-in Starter fallback`,
+          );
+          fallbackPlan = buildStarterFallbackPlan(planId);
+        }
+
+        return createEntitlementsConfig({
+          // SupabaseService exposes the service-role client via `.admin`
+          supabase: supabase.admin,
+          planResolverFactory,
+          fallbackPlan,
+          logger,
+        });
+      },
+      // Register the module globally so every feature module can inject ENTITLEMENTS
+      isGlobal: true,
+      // CRITICAL — audit #1 + #3: prevent automatic APP_GUARD registration.
+      // The pkg registers EntitlementsGuard as APP_GUARD unless `global: false` is set
+      // explicitly (condition: `if (options.global !== false)`). If we allowed it,
+      // EntitlementsGuard would run BEFORE AuthGuard (which sets req.user) because
+      // AuthModule's APP_GUARDs are registered first. We apply EntitlementsGuard
+      // manually via @UseGuards() per controller in T10.
+      global: false,
+      // contextResolver sits at EntitlementsModuleOptions level (not inside config)
+      contextResolver: SecureUserContextResolver,
+      // Defense in depth (pkg v0.2.0):
+      // - defaultPolicy: 'deny' — if guard somehow runs without @RequireSubscription
+      //   metadata (regression / wrong config), block by default instead of allowing.
+      //   Closes audit #4 at the package config layer in addition to our manual
+      //   @UseGuards() pattern.
+      // - exposeErrorDetails: false — strip userId/tenantId from EntitlementsError
+      //   payloads at the source. Our EntitlementsExceptionFilter does the same
+      //   in production; this is a second seatbelt (audit L2).
+      defaultPolicy: "deny",
+      exposeErrorDetails: false,
+    }),
+  ],
+  controllers: [SubscriptionsController],
+  providers: [
+    SecureUserContextResolver,
+    ISubscribeService,
+    PlanResolverFactory,
+    SubscriptionsService,
+    SubscriptionsRenewalService,
+    PaymentService,
+    FeatureSlugValidator,
+    // Audit L2: strip userId/tenantId from entitlements pkg error responses in production
+    { provide: APP_FILTER, useClass: EntitlementsExceptionFilter },
+  ],
+  exports: [ISubscribeService, PlanResolverFactory, SubscriptionsService, EntitlementsModule],
+})
+export class SubscriptionsModule {}

@@ -1,0 +1,44 @@
+/**
+ * PLACEHOLDER: This file contains warranty-specific domain types.
+ * Replace or merge these with your product's domain types.
+ *
+ * The types that the subscription stack REQUIRES to exist are:
+ *   - NotificationType (must include subscription lifecycle values)
+ *   - NotificationChannel
+ *
+ * Everything else below is warranty-specific and can be removed.
+ */
+
+// PLACEHOLDER: Update NotificationType to include subscription lifecycle events.
+// At minimum you need: subscription_renewal, subscription_cancelled, subscription_reactivated, subscription_expired.
+// Your product may already have a notification_type enum in Supabase — add these values to it instead.
+export type NotificationType =
+  | "subscription_renewal"
+  | "subscription_cancelled"
+  | "subscription_reactivated"
+  | "subscription_expired";
+  // PLACEHOLDER: Add your product's other notification types here, e.g.:
+  // | "order_confirmed"
+  // | "invoice_processed"
+
+export type NotificationChannel = "web"; // PLACEHOLDER: add "email" | "push" etc. if needed
+
+// ── Below: warranty-specific types (remove or replace with your product's types) ──
+
+export type Currency = "ILS" | "EUR" | "USD"; // PLACEHOLDER: update for your product's currencies
+export type UserRole = "admin" | "user"; // PLACEHOLDER: update for your RBAC roles
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  message: string;
+  sent_at: string;
+  read_at: string | null;
+  channel: NotificationChannel;
+}
+
+export interface UserRoleRow {
+  user_id: string;
+  role: UserRole;
+}

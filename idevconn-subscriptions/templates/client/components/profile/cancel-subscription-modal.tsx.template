@@ -1,0 +1,61 @@
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useCancelSubscriptionMutation } from "@/queries/subscription";
+
+interface CancelSubscriptionModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Localized display date when the paid period ends. `null` when unknown. */
+  periodEnd: string | null;
+}
+
+export function CancelSubscriptionModal({
+  open,
+  onOpenChange,
+  periodEnd,
+}: CancelSubscriptionModalProps) {
+  const { t } = useTranslation();
+  const cancel = useCancelSubscriptionMutation();
+
+  const onConfirm = async () => {
+    try {
+      await cancel.mutateAsync();
+      toast.success(t("profile.subscription.cancelModal.success"));
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("profile.subscription.cancelModal.error"));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("profile.subscription.cancelModal.title")}</DialogTitle>
+          <DialogDescription>
+            {periodEnd
+              ? t("profile.subscription.cancelModal.bodyWithDate", { date: periodEnd })
+              : t("profile.subscription.cancelModal.body")}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={cancel.isPending}>
+            {t("profile.subscription.cancelModal.back")}
+          </Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={cancel.isPending}>
+            {cancel.isPending ? t("common.loading") : t("profile.subscription.cancelModal.confirm")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

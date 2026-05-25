@@ -1,0 +1,17 @@
+export { EntitlementsProvider } from "./entitlements-provider";
+export {
+  Feature,
+  LockedFeature,
+  useFeature,
+  useLimit,
+  useUsage,
+  /**
+   * useSubscription from the pkg: in-component access to the cached snapshot
+   * via EntitlementsProvider context. Use this inside components that are
+   * already wrapped in <EntitlementsProvider>.
+   *
+   * For direct React Query cache reads / invalidation outside of the provider
+   * context, import { useSubscriptionQuery } from '@/queries/subscription'.
+   */
+  useSubscription as usePkgSubscription,
+} from "@idevconn/isubscribe-entitlements/react";

@@ -1,0 +1,38 @@
+/**
+ * Internal row shape mirroring the payment_history table. The Supabase
+ * client returns this via .select('*') from listOrders.
+ */
+export interface PaymentHistoryRow {
+  id: string;
+  user_id: string;
+  kind: "plan" | "addon" | "refund";
+  provider: string;
+  provider_order_id: string | null;
+  plan_id: string | null;
+  amount: string; // numeric(18,2) arrives as string from Supabase
+  currency: string;
+  metadata: Record<string, unknown>;
+  captured_at: string;
+}
+
+/**
+ * Wire-format row sent to the client. provider_order_id is reduced to a
+ * trailing 6-char suffix for support reference without leaking the full id.
+ */
+export interface OrderHistoryItem {
+  id: string;
+  kind: "plan" | "addon" | "refund";
+  provider: string;
+  providerOrderIdSuffix: string | null;
+  planId: string | null;
+  planName: string | null;
+  amount: number;
+  currency: string;
+  capturedAt: string;
+}
+
+export interface OrdersResponse {
+  items: OrderHistoryItem[];
+  total: number;
+  hasMore: boolean;
+}

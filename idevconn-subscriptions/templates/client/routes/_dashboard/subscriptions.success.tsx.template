@@ -1,0 +1,143 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@/api/client";
+import { SUBSCRIPTION_QUERY_KEY } from "@/queries/subscription";
+import { Button } from "@/components/ui/button";
+
+interface CaptureSearch {
+  token?: string;
+}
+
+export const Route = createFileRoute("/_dashboard/subscriptions/success")({
+  validateSearch: (s): CaptureSearch => ({
+    token: typeof s["token"] === "string" ? s["token"] : undefined,
+  }),
+  component: SubscriptionSuccess,
+});
+
+type CaptureState = "capturing" | "done" | "error";
+
+/** Resolve (token, pendingPlanId) eagerly so we skip the effect for bad-param cases. */
+function resolveInitialState(token: string | undefined): {
+  state: CaptureState;
+  errorMsg: string | null;
+  planId: string | null;
+} {
+  if (!token) {
+    return { state: "error", errorMsg: "missing-token", planId: null };
+  }
+  const planId = (() => {
+    try {
+      return localStorage.getItem("pendingPlanId");
+    } catch {
+      return null;
+    }
+  })();
+  if (!planId) {
+    return { state: "error", errorMsg: "missing-plan", planId: null };
+  }
+  return { state: "capturing", errorMsg: null, planId };
+}
+
+function SubscriptionSuccess() {
+  const { token } = Route.useSearch();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const initial = resolveInitialState(token);
+  const [state, setState] = useState<CaptureState>(initial.state);
+  const [errorMsg, setErrorMsg] = useState<string | null>(initial.errorMsg);
+  const hasFiredRef = useRef(false);
+
+  // Resolve the human-readable message for sentinel error keys.
+  const displayError =
+    errorMsg === "missing-token"
+      ? t("subscriptions.success.missingToken", "Missing order token")
+      : errorMsg === "missing-plan"
+        ? t("subscriptions.success.missingPlan", "Cannot resolve plan. Please retry from pricing.")
+        : errorMsg;
+
+  useEffect(() => {
+    // Guard against StrictMode double-invocation (mount → unmount → mount).
+    if (hasFiredRef.current) return;
+    hasFiredRef.current = true;
+
+    // Only run the async capture when we have a valid token + planId.
+    if (state !== "capturing" || !token || !initial.planId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await api("/subscriptions/capture", {
+          method: "POST",
+          body: JSON.stringify({ orderId: token, planId: initial.planId }),
+        });
+        try {
+          localStorage.removeItem("pendingPlanId");
+        } catch {
+          /* ignore */
+        }
+        await qc.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY });
+        if (!cancelled) {
+          setState("done");
+          toast.success(t("subscriptions.success.toast", "Subscription activated!"));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : "Capture failed";
+          setState("error");
+          setErrorMsg(msg);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="p-4 md:p-6 max-w-md mx-auto text-center">
+      {state === "capturing" && (
+        <>
+          <h1 className="text-2xl font-semibold mb-2">
+            {t("subscriptions.success.processingTitle", "Activating your subscription…")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t("subscriptions.success.processingBody", "Hang tight, this only takes a moment.")}
+          </p>
+        </>
+      )}
+      {state === "done" && (
+        <>
+          <h1 className="text-2xl font-semibold mb-2 text-green-500">
+            {t("subscriptions.success.doneTitle", "You are all set!")}
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            {t("subscriptions.success.doneBody", "Your subscription is now active.")}
+          </p>
+          <Button onClick={() => navigate({ to: "/dashboard" })}>
+            {t("subscriptions.success.goToDashboard", "Go to dashboard")}
+          </Button>
+        </>
+      )}
+      {state === "error" && (
+        <>
+          <h1 className="text-2xl font-semibold mb-2 text-red-500">
+            {t("subscriptions.success.errorTitle", "Something went wrong")}
+          </h1>
+          <p className="text-muted-foreground mb-4">{displayError}</p>
+          <Button variant="outline" onClick={() => navigate({ to: "/dashboard" })}>
+            {t("subscriptions.success.backToDashboard", "Back to dashboard")}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}

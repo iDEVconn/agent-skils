@@ -1,0 +1,30 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { ManagePlanSection } from "@/components/subscriptions/manage-plan-section";
+
+export const Route = createFileRoute("/_dashboard/subscriptions/manage")({
+  component: ManageSubscriptionPage,
+});
+
+function ManageSubscriptionPage() {
+  const { t } = useTranslation();
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("profile.subscription.manage.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t("profile.subscription.manage.subtitle")}
+          </p>
+        </div>
+        <Button variant="outline" nativeButton={false} render={<Link to="/profile" />}>
+          {t("profile.subscription.manage.backToProfile")}
+        </Button>
+      </div>
+      <ManagePlanSection />
+    </div>
+  );
+}

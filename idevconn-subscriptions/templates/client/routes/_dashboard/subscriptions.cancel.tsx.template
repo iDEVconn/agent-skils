@@ -1,0 +1,36 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+
+export const Route = createFileRoute("/_dashboard/subscriptions/cancel")({
+  component: SubscriptionCancel,
+});
+
+function SubscriptionCancel() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // Clean up any stale pendingPlanId so a retry starts fresh.
+  useEffect(() => {
+    try {
+      localStorage.removeItem("pendingPlanId");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  return (
+    <div className="p-4 md:p-6 max-w-md mx-auto text-center">
+      <h1 className="text-2xl font-semibold mb-2">
+        {t("subscriptions.cancel.title", "Subscription cancelled")}
+      </h1>
+      <p className="text-muted-foreground mb-4">
+        {t("subscriptions.cancel.body", "No charge was made. You can try again any time.")}
+      </p>
+      <Button onClick={() => navigate({ to: "/" })}>
+        {t("subscriptions.cancel.backToDashboard", "Back to dashboard")}
+      </Button>
+    </div>
+  );
+}

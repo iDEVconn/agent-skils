@@ -1,0 +1,110 @@
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { BadgeCheck } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useSubscriptionQuery } from "@/queries/subscription";
+import { CancelSubscriptionModal } from "./cancel-subscription-modal";
+import { ReactivateSubscriptionButton } from "./reactivate-subscription-button";
+
+/**
+ * Profile-page card summarizing the user's current plan, status, and
+ * available actions. Free-plan users only see an "Upgrade" CTA — there is
+ * nothing to cancel on the free tier. Paid users see Change / Cancel, or
+ * Reactivate when the plan has already been flagged for cancellation.
+ */
+export function CurrentSubscriptionCard() {
+  const { t, i18n } = useTranslation();
+  const { data, isLoading } = useSubscriptionQuery();
+  const [cancelOpen, setCancelOpen] = useState(false);
+
+  if (isLoading || !data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BadgeCheck className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            {t("profile.subscription.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>{t("common.loading")}</CardContent>
+      </Card>
+    );
+  }
+
+  const planName = data.plan?.name ?? t("profile.subscription.unknownPlan");
+  const isPaid = data.subscription !== null && data.subscription.provider !== "none";
+  const cancelAtPeriodEnd = data.billing.cancelAtPeriodEnd;
+  const periodEnd = data.subscription?.currentPeriodEnd
+    ? new Date(data.subscription.currentPeriodEnd).toLocaleDateString(i18n.language)
+    : null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="flex items-center gap-2">
+            <BadgeCheck className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            {t("profile.subscription.title")}
+          </CardTitle>
+          {cancelAtPeriodEnd ? (
+            <Badge variant="destructive">
+              {t("profile.subscription.status.cancelAtPeriodEnd")}
+            </Badge>
+          ) : (
+            <Badge className="border-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+              {t("profile.subscription.status.active")}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <p className="text-sm text-muted-foreground">{t("profile.subscription.currentPlan")}</p>
+          <p className="text-lg font-semibold">{planName}</p>
+        </div>
+        {periodEnd && (
+          <div>
+            <p className="text-sm text-muted-foreground">
+              {cancelAtPeriodEnd
+                ? t("profile.subscription.endsOn")
+                : t("profile.subscription.renewsOn")}
+            </p>
+            <p className="text-base">{periodEnd}</p>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2 pt-2">
+          {!isPaid ? (
+            <Button nativeButton={false} render={<Link to="/subscriptions/manage" />}>
+              {t("profile.subscription.upgrade")}
+            </Button>
+          ) : cancelAtPeriodEnd ? (
+            <ReactivateSubscriptionButton />
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link to="/subscriptions/manage" />}
+              >
+                {t("profile.subscription.changePlan")}
+              </Button>
+              <Button variant="destructive" onClick={() => setCancelOpen(true)}>
+                {t("profile.subscription.cancel")}
+              </Button>
+            </>
+          )}
+        </div>
+      </CardContent>
+
+      <CancelSubscriptionModal
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        periodEnd={periodEnd}
+      />
+    </Card>
+  );
+}

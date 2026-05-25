@@ -1,0 +1,107 @@
+// DTOs for SubscriptionsController.
+//
+// Runtime-validated by the global ValidationPipe registered in main.ts:
+//   - `transform: true` coerces query strings to numbers per @Type(() => Number).
+//   - `whitelist: true` strips undeclared fields silently.
+// Failed validation produces a 400 with a structured `message` array listing
+// every invariant that the request violated.
+
+import {
+  IsArray,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+
+class PriceDurationDto {
+  @IsIn(["DAY", "WEEK", "MONTH", "YEAR"])
+  type!: "DAY" | "WEEK" | "MONTH" | "YEAR";
+
+  @IsInt()
+  @Min(1)
+  period!: number;
+}
+
+class PriceDto {
+  @IsString()
+  currency!: string;
+
+  @IsNumber()
+  @Min(0)
+  originalPrice!: number;
+
+  @ValidateNested()
+  @Type(() => PriceDurationDto)
+  duration!: PriceDurationDto;
+}
+
+class FeatureRefDto {
+  @IsString()
+  @IsNotEmpty()
+  id!: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
+export class CreateSubscriptionDto {
+  @IsString()
+  @IsNotEmpty()
+  id!: string;
+
+  @IsString()
+  title!: string;
+
+  @IsNumber()
+  @Min(0)
+  effectivePrice!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  effectiveCurrency!: string;
+
+  @ValidateNested()
+  @Type(() => PriceDto)
+  price!: PriceDto;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FeatureRefDto)
+  features!: FeatureRefDto[];
+}
+
+export class CaptureOrderDto {
+  @IsString()
+  @IsNotEmpty()
+  orderId!: string;
+
+  /** planId passed by the frontend for re-verification against iSubscription (Approach B). */
+  @IsString()
+  @IsNotEmpty()
+  planId!: string;
+}
+
+export class ListOrdersDto {
+  /** Optional. Limit of results per page. Min 1, max 100. Defaults to 20. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  /** Optional. Offset for pagination. Min 0. Defaults to 0. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
+}

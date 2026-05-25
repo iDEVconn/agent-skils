@@ -1,0 +1,65 @@
+import { Injectable, InternalServerErrorException, Logger, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { createPayment, PaypalStrategy } from "@idevconn/payment";
+import type { PaymentRegistry } from "@idevconn/payment";
+
+@Injectable()
+export class PaymentService implements OnModuleInit {
+  private readonly logger = new Logger(PaymentService.name);
+  private payment!: PaymentRegistry;
+
+  constructor(private readonly config: ConfigService) {}
+
+  onModuleInit() {
+    const clientId = this.config.getOrThrow<string>("PAYPAL_CLIENT_ID");
+    const secret = this.config.getOrThrow<string>("PAYPAL_SECRET");
+    const env = this.config.get<string>("PAYPAL_ENV", "sandbox");
+    if (env !== "sandbox" && env !== "live") {
+      throw new Error(`PAYPAL_ENV must be "sandbox" or "live", got "${env}"`);
+    }
+    this.payment = createPayment({
+      strategies: {
+        paypal: new PaypalStrategy({ clientId, secret, environment: env }),
+      },
+    });
+    this.logger.log(`PaymentService initialized (env=${env})`);
+  }
+
+  async createPayPalOrder(input: {
+    amount: number;
+    currency: string;
+    referenceId: string;
+    returnUrl?: string;
+    cancelUrl?: string;
+  }): Promise<{ orderId: string; status: string; approveUrl: string }> {
+    const order = await this.payment.createOrder("paypal", {
+      amount: input.amount.toFixed(2),
+      currency: input.currency,
+      referenceId: input.referenceId,
+      returnUrl: input.returnUrl,
+      cancelUrl: input.cancelUrl,
+    });
+    if (!order.approveUrl) {
+      throw new InternalServerErrorException("PayPal createOrder did not return approveUrl");
+    }
+    return {
+      orderId: order.orderId,
+      status: order.status,
+      approveUrl: order.approveUrl, // now narrowed to string
+    };
+  }
+
+  async capturePayPalOrder(
+    orderId: string,
+    idempotencyKey: string,
+  ): Promise<{ orderId: string; status: string; payer: Record<string, unknown> }> {
+    const result = await this.payment.captureOrder("paypal", orderId, {
+      idempotencyKey,
+    });
+    return {
+      orderId: result.orderId,
+      status: result.status,
+      payer: result.payer as Record<string, unknown>,
+    };
+  }
+}

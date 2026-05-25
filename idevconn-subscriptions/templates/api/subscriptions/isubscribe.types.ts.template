@@ -1,0 +1,26 @@
+export interface ISubscribePlan {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  effectivePrice: number;
+  effectiveCurrency: string;
+  status: string;
+  price: {
+    currency: string;
+    originalPrice: number;
+    duration: {
+      type: "DAY" | "WEEK" | "MONTH" | "YEAR";
+      period: number;
+    };
+    isDiscounted: boolean;
+  };
+  features: Array<{
+    id: string;
+    slug: string; // stable identifier — set by iSubscription admin at feature creation time
+    title: string;
+    description?: string;
+    type?: string;
+    status?: string;
+  }>;
+}

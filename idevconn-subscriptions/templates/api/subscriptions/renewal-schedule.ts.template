@@ -1,0 +1,23 @@
+/**
+ * Maps "how many days past the period end are we" to the dunning stage that
+ * should fire today (1..4), or null when the row is outside the retry window.
+ *
+ * Stage table (closed intervals):
+ *   [-1,  0] → 1   (T-1: pre-expiry warning, also fires on the exact end day)
+ *   [ 1,  2] → 2   (T+1: first overdue nudge)
+ *   [ 3,  6] → 3   (T+3: mid-grace reminder)
+ *   [ 7, 13] → 4   (T+7: final notice)
+ *
+ * Day-14 and later are handled by the separate expired-transition path —
+ * scheduleStage returns null there to keep the helper single-purpose.
+ *
+ * Ranges (not single days) absorb missed cron runs: a one-day downtime still
+ * picks up the right stage on the next tick.
+ */
+export function scheduleStage(daysFromEnd: number): 1 | 2 | 3 | 4 | null {
+  if (daysFromEnd >= -1 && daysFromEnd <= 0) return 1;
+  if (daysFromEnd >= 1 && daysFromEnd <= 2) return 2;
+  if (daysFromEnd >= 3 && daysFromEnd <= 6) return 3;
+  if (daysFromEnd >= 7 && daysFromEnd <= 13) return 4;
+  return null;
+}

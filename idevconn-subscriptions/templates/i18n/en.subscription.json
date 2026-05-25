@@ -1,0 +1,116 @@
+{
+  "subscriptions": {
+    "alreadyOnStarter": "You are already on the Starter plan.",
+    "checkoutFailed": "Failed to start checkout. Please try again.",
+    "upstreamDegraded": {
+      "title": "Subscription service is degraded",
+      "invalid_key": "The subscription provider rejected our credentials. Plan upgrades are temporarily unavailable.",
+      "unavailable": "The subscription provider is temporarily unreachable. Plan upgrades are temporarily unavailable.",
+      "network": "We cannot reach the subscription provider right now. Plan upgrades are temporarily unavailable.",
+      "unknown": "Subscription provider returned an unexpected response. Plan upgrades are temporarily unavailable.",
+      "fallbackNotice": "You are on the free Starter plan until the issue is resolved."
+    },
+    "success": {
+      "processingTitle": "Activating your subscription…",
+      "processingBody": "Hang tight, this only takes a moment.",
+      "doneTitle": "You are all set!",
+      "doneBody": "Your subscription is now active.",
+      "goToDashboard": "Go to dashboard",
+      "errorTitle": "Something went wrong",
+      "backToDashboard": "Back to dashboard",
+      "missingToken": "Missing order token",
+      "missingPlan": "Cannot resolve plan. Please retry from pricing.",
+      "toast": "Subscription activated!"
+    },
+    "cancel": {
+      "title": "Subscription cancelled",
+      "body": "No charge was made. You can try again any time.",
+      "backToDashboard": "Back to dashboard"
+    }
+  },
+  "profile": {
+    "subscription": {
+      "title": "Subscription",
+      "currentPlan": "Current plan",
+      "unknownPlan": "Unknown plan",
+      "renewsOn": "Renews on",
+      "endsOn": "Access ends on",
+      "currentBadge": "Current plan",
+      "upgrade": "Upgrade",
+      "changePlan": "Change plan",
+      "cancel": "Cancel subscription",
+      "status": {
+        "active": "Active",
+        "cancelAtPeriodEnd": "Cancels at period end"
+      },
+      "cancelModal": {
+        "title": "Cancel subscription?",
+        "body": "You will keep full access until the end of your current billing period. You can reactivate any time before then.",
+        "bodyWithDate": "You will keep full access until {{date}}. You can reactivate any time before then.",
+        "confirm": "Yes, cancel",
+        "back": "Keep subscription",
+        "success": "Subscription cancelled. Access continues until period end.",
+        "error": "Failed to cancel subscription"
+      },
+      "reactivate": {
+        "cta": "Reactivate subscription",
+        "success": "Subscription reactivated",
+        "error": "Failed to reactivate subscription"
+      },
+      "manage": {
+        "title": "Manage subscription",
+        "subtitle": "Pick a plan or switch to a different tier.",
+        "backToProfile": "Back to profile"
+      }
+    },
+    "orders": {
+      "title": "Recent payments",
+      "viewAll": "View all",
+      "empty": "No payments yet.",
+      "pageTitle": "Payment history",
+      "fullEmptyCta": "Subscribe to a plan",
+      "backToProfile": "Back to profile",
+      "kind": {
+        "plan": "Plan",
+        "addon": "Add-on",
+        "refund": "Refund"
+      }
+    }
+  },
+  "landing": {
+    "pricing": {
+      "label": "Pricing",
+      "title": "Simple, transparent pricing",
+      "subtitle": "Choose the plan that fits your needs. Upgrade or downgrade anytime.",
+      "popular": "Most popular",
+      "starter": {
+        "cta": "Get started free"
+      },
+      "pro": {
+        "cta": "Start Pro"
+      },
+      "widget": {
+        "loading": "Loading plans...",
+        "error": "Could not load plans",
+        "empty": "No plans available",
+        "subscribe": "Subscribe",
+        "sale": "Sale",
+        "trial": "Free trial",
+        "trialNote": "Trial period applies",
+        "perPeriod": "per {{duration}}",
+        "errors": {
+          "invalid_key": "Subscription service is misconfigured. Please contact support.",
+          "unavailable": "Subscription service is temporarily unavailable. Please try again later.",
+          "network": "Network problem. Check your connection and try again.",
+          "unknown": "Could not load subscription plans."
+        }
+      }
+    }
+  },
+  "notifications": {
+    "subscription_renewal": "Renewal",
+    "subscription_cancelled": "Cancelled",
+    "subscription_reactivated": "Reactivated",
+    "subscription_expired": "Subscription"
+  }
+}

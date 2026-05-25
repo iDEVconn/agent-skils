@@ -1,0 +1,163 @@
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
+import { ConfigService } from "@nestjs/config";
+import { firstValueFrom } from "rxjs";
+import { isAxiosError } from "axios";
+import type { ISubscribeErrorReason, ISubscribeUpstreamStatus } from "@warranty/shared /* PLACEHOLDER: replace with your shared lib alias e.g. @myapp/shared */";
+import { ISubscribePlan } from "./isubscribe.types";
+
+@Injectable()
+export class ISubscribeService {
+  private readonly logger = new Logger(ISubscribeService.name);
+  private static readonly CACHE_KEY = "isubscribe:plans";
+  private static readonly CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+  /**
+   * Last upstream status. Initially `null` (no fetch attempted yet). Updated on
+   * every getPlans() call — both success and failure paths. Surfaced via
+   * `getUpstreamStatus()` so the controller can include it in /me responses
+   * and the client can render a degradation banner.
+   */
+  private lastFetchOk: boolean | null = null;
+  private lastErrorReason: ISubscribeErrorReason | null = null;
+  private lastErrorMessage: string | null = null;
+  /**
+   * Timestamp of the last `recordSuccess`/`recordFailure` write. Drives the
+   * opportunistic re-probe in `getUpstreamStatus` so a stale failure flag
+   * never sticks past the recovery window (60s).
+   */
+  private lastStatusAt: number | null = null;
+  private static readonly FAILURE_RETRY_AFTER_MS = 60 * 1000;
+
+  constructor(
+    private readonly http: HttpService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly config: ConfigService,
+  ) {}
+
+  async getPlans(): Promise<ISubscribePlan[]> {
+    const cached = await this.cache.get<ISubscribePlan[]>(ISubscribeService.CACHE_KEY);
+    if (cached) return cached;
+
+    const url = this.config.get<string>("ISUBSCRIBE_API_URL");
+    const apiKey = this.config.get<string>("ISUBSCRIBE_API_KEY");
+
+    if (!url || !apiKey) {
+      const missing = [!url && "ISUBSCRIBE_API_URL", !apiKey && "ISUBSCRIBE_API_KEY"]
+        .filter(Boolean)
+        .join(", ");
+      const message = `iSubscribe upstream not configured (missing env: ${missing})`;
+      this.recordFailure("unavailable", message);
+      this.logger.warn(message);
+      throw new ServiceUnavailableException(message);
+    }
+
+    const origin = this.config.get<string>("ISUBSCRIBE_ORIGIN", "http://localhost:5173");
+
+    let response;
+    try {
+      response = await firstValueFrom(
+        this.http.get<ISubscribePlan[]>(url, {
+          headers: { "x-api-key": apiKey, Origin: origin },
+          timeout: 10_000,
+        }),
+      );
+    } catch (error) {
+      const reason = this.classify(error);
+      const errMessage = error instanceof Error ? error.message : String(error);
+      if (isAxiosError(error)) {
+        this.logger.error(
+          `iSubscribe API request failed: ${error.response?.status ?? "no response"} — ${error.message}`,
+          error.response?.data ? JSON.stringify(error.response.data) : undefined,
+        );
+      } else {
+        this.logger.error("iSubscribe API request failed", errMessage);
+      }
+      this.recordFailure(reason, errMessage);
+      throw new InternalServerErrorException("Failed to fetch subscription plans");
+    }
+
+    const plans = response.data;
+    await this.cache.set(ISubscribeService.CACHE_KEY, plans, ISubscribeService.CACHE_TTL_MS);
+    this.recordSuccess();
+    return plans;
+  }
+
+  async getPlan(planId: string): Promise<ISubscribePlan> {
+    const plans = await this.getPlans();
+    const plan = plans.find((p) => p.id === planId);
+    if (!plan) {
+      throw new NotFoundException(`Subscription plan not found: ${planId}`);
+    }
+    return plan;
+  }
+
+  async clearCache(): Promise<void> {
+    await this.cache.del(ISubscribeService.CACHE_KEY);
+  }
+
+  /**
+   * Snapshot of the most recent upstream interaction. `ok=null` means no
+   * fetch attempted yet (e.g. controller called before any plan resolve).
+   * `ok=true` indicates the last call succeeded; reason/message are then null.
+   *
+   * Opportunistic recovery: if the last call failed more than
+   * FAILURE_RETRY_AFTER_MS ago, transparently re-probe via getPlans() so
+   * the banner clears as soon as upstream is healthy again — callers
+   * don't need to know about the retry.
+   */
+  async getUpstreamStatus(): Promise<ISubscribeUpstreamStatus> {
+    if (this.shouldProbeUpstream()) {
+      // Swallow — getPlans's own catch already records the new failure.
+      await this.getPlans().catch(() => undefined);
+    }
+    return {
+      ok: this.lastFetchOk === true,
+      reason: this.lastErrorReason,
+      message: this.lastErrorMessage,
+    };
+  }
+
+  private shouldProbeUpstream(): boolean {
+    if (this.lastFetchOk !== false) return false;
+    if (this.lastStatusAt === null) return true;
+    return Date.now() - this.lastStatusAt > ISubscribeService.FAILURE_RETRY_AFTER_MS;
+  }
+
+  private classify(error: unknown): ISubscribeErrorReason {
+    if (isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 401 || status === 403) return "invalid_key";
+      if (typeof status === "number" && status >= 500) return "unavailable";
+      if (status === undefined) {
+        if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return "network";
+        if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") return "network";
+        if (error.code === "ERR_NETWORK") return "network";
+      }
+      return "unknown";
+    }
+    return "unknown";
+  }
+
+  private recordSuccess(): void {
+    this.lastFetchOk = true;
+    this.lastErrorReason = null;
+    this.lastErrorMessage = null;
+    this.lastStatusAt = Date.now();
+  }
+
+  private recordFailure(reason: ISubscribeErrorReason, message: string): void {
+    this.lastFetchOk = false;
+    this.lastErrorReason = reason;
+    this.lastErrorMessage = message;
+    this.lastStatusAt = Date.now();
+  }
+}

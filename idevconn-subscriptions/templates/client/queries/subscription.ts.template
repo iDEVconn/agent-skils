@@ -1,0 +1,69 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/api/client";
+import { useAuthStore } from "@/stores/auth"; /* PLACEHOLDER: replace with your auth store hook path */
+import type {
+  ActiveSubscription,
+  ActivePlan,
+  FeatureValue,
+} from "@idevconn/isubscribe-entitlements";
+import type { ISubscribeUpstreamStatus } from "@warranty/shared"; /* PLACEHOLDER: replace '@warranty/shared' with your shared lib alias e.g. '@myapp/shared' */
+
+/**
+ * Shape returned by GET /api/subscriptions/me.
+ * Dates come as ISO strings over the wire; we keep them as strings here
+ * and coerce to Date objects only when building the pkg's ActiveSubscription.
+ */
+export interface SubscriptionMeResponse {
+  subscription:
+    | (Omit<ActiveSubscription, "startedAt" | "currentPeriodStart" | "currentPeriodEnd"> & {
+        startedAt: string;
+        currentPeriodStart: string;
+        currentPeriodEnd: string;
+      })
+    | null;
+  plan: ActivePlan;
+  entitlements: Record<string, FeatureValue>;
+  upstream: ISubscribeUpstreamStatus;
+  billing: { cancelAtPeriodEnd: boolean };
+}
+
+export const SUBSCRIPTION_QUERY_KEY = ["subscription", "me"] as const;
+
+export function useSubscriptionQuery() {
+  const userId = useAuthStore((s) => s.user?.id); /* PLACEHOLDER: adapt to your auth store shape */
+  const accessToken = useAuthStore((s) => s.accessToken); /* PLACEHOLDER: adapt to your auth store shape */
+  return useQuery<SubscriptionMeResponse>({
+    queryKey: SUBSCRIPTION_QUERY_KEY,
+    queryFn: () => api<SubscriptionMeResponse>("/subscriptions/me"),
+    staleTime: 60_000,
+    // Both checks matter: `userId` survives localStorage rehydration even after
+    // the tokens have been logged out / expired. Without `accessToken` we fire
+    // a guaranteed 401 on every cold load for unauthenticated visitors.
+    enabled: !!userId && !!accessToken,
+  });
+}
+
+interface CancelResponse {
+  cancelAtPeriodEnd: true;
+  currentPeriodEnd: string | null;
+}
+
+export function useCancelSubscriptionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<CancelResponse, Error, void>({
+    mutationFn: () => api<CancelResponse>("/subscriptions/cancel", { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY }),
+  });
+}
+
+interface ReactivateResponse {
+  cancelAtPeriodEnd: false;
+}
+
+export function useReactivateSubscriptionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<ReactivateResponse, Error, void>({
+    mutationFn: () => api<ReactivateResponse>("/subscriptions/reactivate", { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY }),
+  });
+}

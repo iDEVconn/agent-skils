@@ -1,0 +1,46 @@
+import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useSubscriptionQuery } from "@/queries/subscription";
+
+/**
+ * Persistent banner shown on every authenticated page when the backend reports
+ * that the iSubscribe upstream is degraded. Renders nothing when the upstream
+ * is healthy (which is the common case) so it stays out of the way.
+ *
+ * The reason string drives a localized message; the user is also reassured
+ * that their account silently falls back to the free Starter plan until
+ * the upstream recovers — read from `subscriptions.upstreamDegraded.*`.
+ */
+export function UpstreamDegradedBanner() {
+  const { t } = useTranslation();
+  const { data } = useSubscriptionQuery();
+
+  const upstream = data?.upstream;
+  if (!upstream || upstream.ok || !upstream.reason) return null;
+
+  const reasonKey = `subscriptions.upstreamDegraded.${upstream.reason}` as const;
+  const message = t(reasonKey, {
+    defaultValue: t(
+      "subscriptions.upstreamDegraded.unknown",
+      "Subscription provider returned an unexpected response. Plan upgrades are temporarily unavailable.",
+    ),
+  });
+
+  return (
+    <div
+      role="alert"
+      className="bg-amber-50 border-b border-amber-300 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200"
+    >
+      <div className="mx-auto max-w-7xl px-4 py-2 flex items-start gap-3 text-sm">
+        <AlertTriangle className="size-4 mt-0.5 shrink-0" aria-hidden="true" />
+        <div className="flex-1">
+          <p className="font-medium">{t("subscriptions.upstreamDegraded.title")}</p>
+          <p className="text-amber-800/90 dark:text-amber-200/90">{message}</p>
+          <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+            {t("subscriptions.upstreamDegraded.fallbackNotice")}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,77 @@
+import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { Receipt } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useOrdersQuery } from "@/queries/orders";
+import { formatAmount } from "@/lib/format-amount";
+
+const RECENT_LIMIT = 5;
+
+export function OrdersCard() {
+  const { t, i18n } = useTranslation();
+  const { data, isLoading } = useOrdersQuery(RECENT_LIMIT);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            {t("profile.orders.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>{t("common.loading")}</CardContent>
+      </Card>
+    );
+  }
+
+  const items = data?.items ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Receipt className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+          {t("profile.orders.title")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("profile.orders.empty")}</p>
+        ) : (
+          <>
+            <ul className="space-y-2">
+              {items.map((o) => (
+                <li key={o.id} className="flex items-center justify-between gap-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {o.planName ?? o.planId ?? t(`profile.orders.kind.${o.kind}`)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(o.capturedAt).toLocaleDateString(i18n.language)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm">
+                      {formatAmount(o.amount, o.currency, i18n.language)}
+                    </span>
+                    <Badge variant="secondary">{t(`profile.orders.kind.${o.kind}`)}</Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="pt-1">
+              <Link
+                to="/orders"
+                className="text-sm text-primary underline-offset-4 hover:underline"
+              >
+                {`${t("profile.orders.viewAll")} →`}
+              </Link>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
