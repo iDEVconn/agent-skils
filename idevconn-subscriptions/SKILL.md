@@ -149,6 +149,12 @@ import { PaymentModule } from './payment/payment.module';
 })
 ```
 
+> **`ScheduleModule.forRoot()` must be registered exactly once at app boot.**
+> If your project already calls it (e.g. from a dedicated `SchedulerModule`),
+> do NOT add it again — just import `SubscriptionsModule` and `PaymentModule`
+> wherever fits. The warranty project keeps it in a separate `SchedulerModule`;
+> either pattern works.
+
 ## Phase 8 — Frontend templates
 
 Copy all files from `templates/client/` into `apps/client/src/` preserving structure.
@@ -219,6 +225,12 @@ Merge `templates/i18n/en.subscription.json` into your app's `en.json` locale.
 Do the same for `ru.subscription.json` and `he.subscription.json` if those locales are used.
 Keys live under `subscriptions`, `profile.subscription`, `profile.orders`, `landing.pricing`.
 
+> **RTL (Hebrew).** If you ship Hebrew, ensure your i18n initializer sets
+> `dir="rtl"` on the `<html>` element when `he` is active. The components in
+> `templates/client/` rely on Tailwind logical properties (`ms-*`, `me-*`,
+> `text-start`, `text-end`) — audit any custom overrides for hardcoded
+> `text-left` / `ml-*` / `mr-*` that would break in RTL.
+
 ## Phase 12 — Smoke test
 
 1. Register a new user → confirm `user_subscriptions` row with `provider='none'` + Starter entitlements.
@@ -237,6 +249,14 @@ See [reference-architecture.md](reference-architecture.md) for full rationale.
 3. **`defaultPolicy: 'deny'`**: `EntitlementsModule` blocks by default; guards are applied per controller, never as `APP_GUARD`.
 4. **`SecureUserContextResolver`**: reads only `req.user.id` (set by JWT `AuthGuard`); never falls back to headers.
 5. **`global: false`** on `EntitlementsModule.forRootAsync`: prevents auto `APP_GUARD` registration that would run before `AuthGuard`.
+6. **`EntitlementsExceptionFilter`**: strips `details.userId` / `details.tenantId` from 4xx responses in production so internal IDs don't leak in entitlements denials.
+
+> **Performance note.** `entitlements.config.ts` ships with `cacheTtlMs: 0` —
+> every entitlements decision re-resolves the plan from iSubscription (no in-memory
+> cache). Safe by default (no stale entitlements after upgrade/downgrade), but
+> means one upstream call per gated request. If iSubscription latency is a problem,
+> raise this in your fork — accept that plan changes take up to `cacheTtlMs` to
+> propagate.
 
 ## Additional resources
 
