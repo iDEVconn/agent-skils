@@ -16,6 +16,8 @@ if any blocker is found.
 | Supabase | `supabase/migrations/` dir exists | Initialize Supabase CLI first |
 | `auth.users` enabled | Supabase config has `[auth] enabled = true` | Enable auth in `supabase/config.toml` |
 | `update_updated_at()` function | Grep for `update_updated_at` in existing migrations | Migration 001 adds a trigger that calls this function — ensure it exists or add it |
+| Global `AuthGuard` populates `req.user.id` | Grep for `APP_GUARD` + `AuthGuard` in `app.module.ts`; verify `req.user.id` is set by JWT verification | Without this, `SecureUserContextResolver` throws "no authenticated user on request". Wire AuthGuard as APP_GUARD before SubscriptionsModule |
+| `NotificationsModule` + `NotificationsService.create({ user_id, type, message, channel })` | `apps/api/src/notifications/notifications.service.ts` exposes `create(payload)` | `SubscriptionsService` + `SubscriptionsRenewalService` inject `NotificationsService`. Either create one (signature above) or stub the injections out of both services |
 
 ---
 
