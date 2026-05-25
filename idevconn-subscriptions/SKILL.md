@@ -86,6 +86,32 @@ Copy all files from `templates/api/` into `apps/api/src/` preserving the folder 
 
 Update **import paths**: replace `@warranty/shared` with your shared lib alias (e.g. `@myapp/shared`).
 
+### Applying feature gates to YOUR endpoints
+
+The skill ships `EntitlementsOrAdminGuard` (in `templates/api/subscriptions/`) so you
+can short-circuit checks for admins. The subscriptions controller itself is NOT
+gated — that controller manages the subscription. Apply the guard on YOUR
+feature-bearing controllers (products, exports, AI calls, etc.):
+
+```typescript
+import { RequireSubscription } from "@idevconn/isubscribe-entitlements/nest";
+import { EntitlementsOrAdminGuard } from "../subscriptions/entitlements-or-admin.guard";
+import { FEATURE_SLUGS } from "@myapp/shared"; // your shared alias
+
+@Controller("items")
+export class ItemsController {
+  @Post()
+  @UseGuards(EntitlementsOrAdminGuard)
+  @RequireSubscription({ feature: FEATURE_SLUGS.MAX_ITEMS })
+  create(/* ... */) { /* ... */ }
+}
+```
+
+⚠️ **Decorator is defense-in-depth, NOT a cap enforcer.** For numeric caps
+(e.g. "up to 5 items") the package's `consume()` semantics don't suit
+non-metered features. Count manually in the service and throw
+`ForbiddenException` — see warranty's `ProductsService.create` for the pattern.
+
 ## Phase 7 — Wire AuthService + AppModule
 
 **In `apps/api/src/auth/auth.service.ts`:**
