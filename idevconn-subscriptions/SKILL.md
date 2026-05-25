@@ -140,6 +140,8 @@ Copy all files from `templates/client/` into `apps/client/src/` preserving struc
 **Files with `PLACEHOLDER:` markers** (see [reference-customization.md](reference-customization.md)):
 - `landing-pricing.tsx` — replace hardcoded plan IDs in `subscriptionOverrides`
 - `queries/subscription.ts` — update `@warranty/shared` import to your shared lib alias
+- `entitlements-provider.tsx` — imports `useAbility` from `@/abilities` (CASL). If your project does not use CASL, replace with a no-op `useAbility` shim or drop the admin-bypass logic
+- `routes/_dashboard/orders.tsx` — imports `formatAmount` from `@/lib/format-amount`. Create that util or replace with `Intl.NumberFormat`
 
 ## Phase 9 — Mount EntitlementsProvider + register routes
 
@@ -161,6 +163,7 @@ root.render(
 - `_dashboard/subscriptions/success`
 - `_dashboard/subscriptions/cancel`
 - `_dashboard/subscriptions/manage`
+- `_dashboard/orders` (payment history page — linked from `orders-card.tsx`)
 
 ## Phase 10 — Env vars
 

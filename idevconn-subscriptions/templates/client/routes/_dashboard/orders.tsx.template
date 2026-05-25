@@ -1,0 +1,104 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useOrdersInfiniteQuery } from "@/queries/orders";
+// PLACEHOLDER: create a `formatAmount(amount, currency, locale)` util in `@/lib/format-amount`
+// or replace with `new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount)`.
+import { formatAmount } from "@/lib/format-amount";
+
+export const Route = createFileRoute("/_dashboard/orders")({
+  component: OrdersPage,
+});
+
+function OrdersPage() {
+  const { t, i18n } = useTranslation();
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useOrdersInfiniteQuery();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const handleIntersect = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage],
+  );
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(handleIntersect, { rootMargin: "200px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [handleIntersect]);
+
+  if (isLoading) {
+    return <div className="p-4 md:p-6 text-muted-foreground">{t("common.loading")}</div>;
+  }
+
+  const allItems = data?.pages.flatMap((p) => p.items) ?? [];
+
+  return (
+    <div className="p-4 md:p-6">
+      <Link
+        to="/profile"
+        className="mb-2 inline-block text-sm text-primary underline-offset-4 hover:underline"
+      >
+        ← {t("profile.orders.backToProfile")}
+      </Link>
+      <h1 className="mb-6 text-2xl font-bold">{t("profile.orders.pageTitle")}</h1>
+      {allItems.length === 0 ? (
+        <Card>
+          <CardContent className="space-y-4 p-6 text-center">
+            <p className="text-muted-foreground">{t("profile.orders.empty")}</p>
+            <Button render={<Link to="/subscriptions/manage" />}>
+              {t("profile.orders.fullEmptyCta")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("profile.orders.pageTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ul className="space-y-2">
+              {allItems.map((o) => (
+                <li
+                  key={o.id}
+                  className="flex items-center justify-between gap-2 border-b border-border/40 pb-2 text-sm last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {o.planName ?? o.planId ?? t(`profile.orders.kind.${o.kind}`)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(o.capturedAt).toLocaleDateString(i18n.language)}
+                      {o.providerOrderIdSuffix ? ` · #…${o.providerOrderIdSuffix}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono">
+                      {formatAmount(o.amount, o.currency, i18n.language)}
+                    </span>
+                    <Badge variant="secondary">{t(`profile.orders.kind.${o.kind}`)}</Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div ref={sentinelRef} className="h-px" />
+            {isFetchingNextPage && (
+              <p className="pt-2 text-center text-xs text-muted-foreground">
+                {t("common.loading")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
