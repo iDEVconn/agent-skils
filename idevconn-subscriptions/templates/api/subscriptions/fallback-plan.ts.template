@@ -12,11 +12,9 @@ import { FEATURE_SLUGS, FEATURE_VALUES } from "@warranty/shared"; /* PLACEHOLDER
  * The live plan from iSubscribe takes precedence whenever the upstream is healthy.
  */
 const STARTER_FEATURE_SLUGS = [
-  FEATURE_SLUGS.MAX_PRODUCTS,      // PLACEHOLDER: replace with your Starter numeric-cap slug key
-  FEATURE_SLUGS.MANUAL_ENTRY,      // PLACEHOLDER: replace or remove
-  FEATURE_SLUGS.WARRANTY_ALERTS,   // PLACEHOLDER: replace or remove
-  FEATURE_SLUGS.INVOICE_STORAGE_MB, // PLACEHOLDER: replace or remove
-  FEATURE_SLUGS.SUPPORT_CHAT,      // PLACEHOLDER: replace or remove
+  FEATURE_SLUGS.MAX_ITEMS,       // PLACEHOLDER: keep — referenced by service normalization
+  FEATURE_SLUGS.BASIC_FEATURE,   // PLACEHOLDER: replace with your Starter-tier boolean feature key(s)
+  FEATURE_SLUGS.STORAGE_MB,      // PLACEHOLDER: keep — referenced by service normalization
 ] as const;
 
 /**

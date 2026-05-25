@@ -7,27 +7,37 @@ All `// PLACEHOLDER:` comments in template files point back to this table.
 
 ## 1. Shared lib — `libs/shared/src/features.ts`
 
-**Most important file to customize.** Replace every slug and value.
+**Most important file to customize.** Replace slug VALUES (strings) freely.
+
+⚠️ **Coupling note.** The following key NAMES are referenced by
+`subscriptions.service.ts` → `buildEntitlementsFromPlan` and
+`fallback-plan.ts` → `STARTER_FEATURE_SLUGS`:
+
+- `MAX_ITEMS`
+- `UNLIMITED_ITEMS`
+- `STORAGE_MB`
+- `STORAGE_GB`
+
+If you rename any of these keys, you MUST update those two files in lock-step
+or the API will not compile. Slug VALUES (the right-hand-side strings) can
+change freely without touching service code.
 
 ### Template structure
 
 ```typescript
 export const FEATURE_SLUGS = {
-  // PLACEHOLDER: Replace ALL keys and values with slugs from your iSubscribe dashboard.
-  // Steps:
-  //   1. Open iSubscribe dashboard → Features for each plan
-  //   2. Copy the exact slug string from each feature
-  //   3. Add an entry here: SEMANTIC_NAME: "exact-slug-from-dashboard"
-  // Slugs are matched at boot by FeatureSlugValidator — drift logs a warning.
+  // PLACEHOLDER: Replace VALUES with slugs from your iSubscribe dashboard.
+  // KEY NAMES listed in the coupling note above must remain unchanged.
 
-  // Free tier features (example — replace these)
-  MAX_ITEMS: "up_to_10_items",           // REPLACE with your Starter numeric-cap slug
-  BASIC_FEATURE: "basic_feature",        // REPLACE or add more boolean Starter features
+  // Free tier features
+  MAX_ITEMS: "up_to_10_items",           // numeric cap — used by service (DO NOT RENAME KEY)
+  BASIC_FEATURE: "basic_feature",        // free-form boolean key — rename freely
+  STORAGE_MB: "storage_100_mb",          // numeric storage — used by service (DO NOT RENAME KEY)
 
-  // Paid tier features (example — replace these)
-  UNLIMITED_ITEMS: "unlimited_items",    // REPLACE with your Pro unlimited slug
-  PREMIUM_EXPORT: "premium_export",      // REPLACE with your Pro/Premium feature slugs
-  STORAGE_MB: "storage_100_mb",          // REPLACE with your storage slug
+  // Paid tier features
+  UNLIMITED_ITEMS: "unlimited_items",    // used by service (DO NOT RENAME KEY)
+  STORAGE_GB: "storage_5_gb",            // used by service (DO NOT RENAME KEY)
+  PREMIUM_FEATURE: "premium_feature",    // free-form boolean key — rename freely
 } as const;
 
 export const FEATURE_VALUES: Record<FeatureSlug, FeatureValue> = {
@@ -37,9 +47,10 @@ export const FEATURE_VALUES: Record<FeatureSlug, FeatureValue> = {
   //   null     = unlimited (use with UNLIMITED_* slugs)
   [FEATURE_SLUGS.MAX_ITEMS]: 10,
   [FEATURE_SLUGS.BASIC_FEATURE]: true,
-  [FEATURE_SLUGS.UNLIMITED_ITEMS]: null,
-  [FEATURE_SLUGS.PREMIUM_EXPORT]: true,
   [FEATURE_SLUGS.STORAGE_MB]: 100,
+  [FEATURE_SLUGS.UNLIMITED_ITEMS]: true,  // normalized to null in buildEntitlementsFromPlan
+  [FEATURE_SLUGS.STORAGE_GB]: 5120,       // 5 GB expressed in MB
+  [FEATURE_SLUGS.PREMIUM_FEATURE]: true,
 };
 ```
 

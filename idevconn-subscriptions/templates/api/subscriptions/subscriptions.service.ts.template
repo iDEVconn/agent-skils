@@ -66,24 +66,26 @@ export function buildEntitlementsFromPlan(
     features[f.slug] = FEATURE_VALUES[f.slug as FeatureSlug] ?? true;
   }
 
-  // PLACEHOLDER: Adapt the normalization logic below to your product's feature slugs.
-  // The warranty version normalizes UNLIMITED_PRODUCTS → MAX_PRODUCTS and INVOICE_STORAGE_GB_5.
-  // Replace with whichever of YOUR slugs represent "unlimited" and numeric caps.
+  // The keys referenced below (MAX_ITEMS, UNLIMITED_ITEMS, STORAGE_MB, STORAGE_GB)
+  // are coupled to FEATURE_SLUGS key names in `libs/shared/src/features.ts`.
+  // If you rename keys there, update them here in lock-step. Slug VALUES (the
+  // strings on the right-hand side in features.ts) can change freely.
 
-  // Normalize UNLIMITED_ITEMS to MAX_ITEMS (example — update slugs to match your product).
-  if (features[FEATURE_SLUGS.UNLIMITED_PRODUCTS]) {
-    features[FEATURE_SLUGS.MAX_PRODUCTS] = null;
-  } else if (!(FEATURE_SLUGS.MAX_PRODUCTS in features)) {
-    features[FEATURE_SLUGS.MAX_PRODUCTS] = 0;
+  // Normalize UNLIMITED_ITEMS → MAX_ITEMS = null (unlimited).
+  if (features[FEATURE_SLUGS.UNLIMITED_ITEMS]) {
+    features[FEATURE_SLUGS.MAX_ITEMS] = null;
+  } else if (!(FEATURE_SLUGS.MAX_ITEMS in features)) {
+    features[FEATURE_SLUGS.MAX_ITEMS] = 0;
   }
 
-  // Normalize storage cap — higher value wins across plans.
+  // Normalize storage cap — higher value wins across plans (STORAGE_MB is the
+  // canonical key callers read; STORAGE_GB is folded into it).
   const candidates = [
-    features[FEATURE_SLUGS.INVOICE_STORAGE_MB],
-    features[FEATURE_SLUGS.INVOICE_STORAGE_GB_5],
+    features[FEATURE_SLUGS.STORAGE_MB],
+    features[FEATURE_SLUGS.STORAGE_GB],
   ].filter((v): v is number => typeof v === "number");
   if (candidates.length > 0) {
-    features[FEATURE_SLUGS.INVOICE_STORAGE_MB] = Math.max(...candidates);
+    features[FEATURE_SLUGS.STORAGE_MB] = Math.max(...candidates);
   }
 
   return features;
