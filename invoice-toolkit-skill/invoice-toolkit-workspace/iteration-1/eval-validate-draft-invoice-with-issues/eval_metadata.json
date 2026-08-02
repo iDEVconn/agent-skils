@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "validate-draft-invoice-with-issues",
+  "prompt": "Can you check if this invoice is ready to send? Here's the draft:\n\nInvoice #4471\nFrom: Pinewood Design Studio\nTo: Client (no contact info on file yet, will add later)\n\nItems:\n- Logo design package: 1 x $1200\n- Business card design: 1 x $300\n\nSubtotal: $1500\nTotal: $1500\n\nNo due date mentioned yet, we usually just say 'ASAP'. They'll pay however works for them.",
+  "assertions": [
+    "Flags missing buyer (client) contact details as a problem",
+    "Flags that 'ASAP' is not a valid due date / payment terms are missing",
+    "Flags missing accepted payment methods",
+    "Flags missing tax information (no tax rate and not stated as tax-exempt)",
+    "Does NOT falsely claim the subtotal/total arithmetic is wrong (the $1500 math is actually correct)",
+    "Explains findings in plain, client-facing language rather than dumping raw JSON/script output"
+  ]
+}

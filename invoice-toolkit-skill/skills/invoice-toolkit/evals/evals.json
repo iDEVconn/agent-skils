@@ -1,0 +1,49 @@
+{
+  "skill_name": "invoice-toolkit",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "explain-proforma-vs-bill",
+      "prompt": "quick q - what's actually the difference between a proforma invoice and a normal invoice? and is a \"bill\" just another word for invoice or is there an actual difference? trying to make sure I send my client the right thing before we've shipped anything",
+      "expected_output": "Correctly explains that a proforma invoice is sent before delivery as a preview/estimate (not a payment demand), while a standard invoice is the actual payment request issued after delivery. Explains that a bill implies faster/immediate expected payment vs. an invoice's longer payment terms, and that they are related but not identical. Should recommend proforma given the user hasn't shipped anything yet. Answer should be grounded in the skill's reference material, not generic/vague.",
+      "files": [],
+      "assertions": [
+        "States that a proforma invoice is sent BEFORE delivery, as a preview/estimate rather than a firm payment demand",
+        "Does NOT claim a proforma invoice is issued after delivery or after the work is complete",
+        "Explains a distinction between 'bill' and 'invoice' rather than claiming they're pure synonyms with no difference",
+        "Explicitly recommends or implies a proforma invoice is the right choice for the user's stated situation"
+      ]
+    },
+    {
+      "id": 1,
+      "eval_name": "generate-consulting-invoice",
+      "prompt": "I need to invoice a client. My business is Solstice Consulting LLC (billing@solsticeconsulting.com). Client is Northwind Traders, 88 Harbor Rd, Portland. I did 3 consulting sessions at $250/hr, 8 hours each, plus a flat $500 setup fee. 15% tax on everything. Payment terms are net 15 from today (2026-08-02). They can pay by wire transfer or PayPal. Use sequential invoice numbering starting at 2001.",
+      "expected_output": "Produces a complete, correctly formatted invoice with invoice number 2001, issue date 2026-08-02, due date 2026-08-17 (net 15), itemized lines (24 hours * $250 = $6000, plus $500 setup fee), 15% tax applied, correct subtotal ($6500), tax ($975), and grand total ($7475), both parties' details, and both payment methods listed. Should use generate_invoice.py rather than hand-computing totals.",
+      "files": [],
+      "assertions": [
+        "Contains the invoice number 2001",
+        "Contains the correct due date 2026-08-17",
+        "Contains the correct subtotal 6500",
+        "Contains the correct tax amount 975",
+        "Contains the correct grand total 7475",
+        "Lists both payment methods: wire transfer and PayPal",
+        "Includes both party names: Solstice Consulting and Northwind Traders"
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "validate-draft-invoice-with-issues",
+      "prompt": "Can you check if this invoice is ready to send? Here's the draft:\n\nInvoice #4471\nFrom: Pinewood Design Studio\nTo: Client (no contact info on file yet, will add later)\n\nItems:\n- Logo design package: 1 x $1200\n- Business card design: 1 x $300\n\nSubtotal: $1500\nTotal: $1500\n\nNo due date mentioned yet, we usually just say 'ASAP'. They'll pay however works for them.",
+      "expected_output": "Correctly flags: missing buyer contact details, missing explicit payment terms/due date ('ASAP' is not a real due date), missing accepted payment methods, and missing tax information (no tax rate given, not marked as tax-exempt). Should not flag a math error since the subtotal ($1500) is correct and no tax/grand_total was claimed. Should explain findings in plain language with why each gap matters, not just dump raw validator JSON.",
+      "files": [],
+      "assertions": [
+        "Flags missing buyer (client) contact details as a problem",
+        "Flags that 'ASAP' is not a valid due date / payment terms are missing",
+        "Flags missing accepted payment methods",
+        "Flags missing tax information (no tax rate and not stated as tax-exempt)",
+        "Does NOT falsely claim the subtotal/total arithmetic is wrong",
+        "Explains findings in plain, client-facing language rather than dumping raw JSON/script output"
+      ]
+    }
+  ]
+}

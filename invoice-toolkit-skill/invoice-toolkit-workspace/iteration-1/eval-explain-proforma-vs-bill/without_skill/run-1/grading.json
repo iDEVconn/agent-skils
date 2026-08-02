@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "States that a proforma invoice is sent BEFORE delivery, as a preview/estimate rather than a firm payment demand",
+      "passed": true,
+      "evidence": "\"You send it before the work is finished or goods are shipped... It's not legally binding as a payment demand\""
+    },
+    {
+      "text": "Does NOT claim a proforma invoice is issued after delivery",
+      "passed": true,
+      "evidence": "No reversal present"
+    },
+    {
+      "text": "Explains a distinction between 'bill' and 'invoice' rather than claiming pure synonyms",
+      "passed": true,
+      "evidence": "\"Mostly yes, in practice... If there's a nuance... bill is more often used from the buyer's/receiver's side... immediate payment\" -- explains a real (if softer) distinction rather than a flat 'no difference'"
+    },
+    {
+      "text": "Explicitly recommends a proforma invoice for the user's stated situation",
+      "passed": true,
+      "evidence": "\"what you want right now is a proforma invoice\""
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 4,
+    "failed": 0,
+    "total": 4
+  }
+}

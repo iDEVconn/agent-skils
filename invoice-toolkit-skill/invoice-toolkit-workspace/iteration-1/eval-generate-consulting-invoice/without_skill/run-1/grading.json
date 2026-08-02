@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Contains the invoice number 2001",
+      "passed": true,
+      "evidence": "\"Invoice #: 2001\""
+    },
+    {
+      "text": "Contains the correct due date 2026-08-17",
+      "passed": true,
+      "evidence": "\"Due Date: 2026-08-17 (Net 15)\""
+    },
+    {
+      "text": "Contains the correct subtotal 6500",
+      "passed": true,
+      "evidence": "\"Subtotal: $6,500.00\""
+    },
+    {
+      "text": "Contains the correct tax amount 975",
+      "passed": true,
+      "evidence": "\"Tax (15%): $975.00\""
+    },
+    {
+      "text": "Contains the correct grand total 7475",
+      "passed": true,
+      "evidence": "\"TOTAL DUE: $7,475.00\""
+    },
+    {
+      "text": "Lists both payment methods: wire transfer and PayPal",
+      "passed": true,
+      "evidence": "\"Wire Transfer\" / \"PayPal\""
+    },
+    {
+      "text": "Includes both party names",
+      "passed": true,
+      "evidence": "\"Solstice Consulting LLC\" ... \"Northwind Traders\""
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 7,
+    "failed": 0,
+    "total": 7
+  }
+}

@@ -1,0 +1,1545 @@
+Split: 12 train, 8 test (holdout=0.4)
+
+============================================================
+Iteration 1/5
+Description: Everything about invoices — explaining what they are, generating a new invoice document with correct fields and numbering, and validating a draft invoice against required components. Use this skill whenever the user asks what an invoice is, asks about invoice types (proforma, interim, recurring, credit, debit, time sheet, past due), asks how an invoice differs from a bill, receipt, or purchase order, wants an invoice numbering scheme, wants to create/draft/generate an invoice for a client or project, or wants to check whether an invoice or invoice template is missing required fields before sending it. Trigger even if the user just says "make me an invoice" or "is this invoice ready to send" without using the word "toolkit.
+============================================================
+Train: 20/36 correct, precision=100% recall=11% accuracy=56% (76.7s)
+  [FAIL] rate=0/3 expected=True: quick one - is a 'bill' the same thing as an 'invoice' or is
+  [FAIL] rate=1/3 expected=True: need to number my invoices somehow, right now i just eyeball
+  [FAIL] rate=0/3 expected=True: make me an invoice for 3 months of my retainer client, $2000
+  [FAIL] rate=0/3 expected=True: is this invoice ready to send: Invoice #88, ACME Corp, $4500
+  [FAIL] rate=1/3 expected=True: what's the diff between a credit invoice and a debit invoice
+  [FAIL] rate=0/3 expected=True: hey can you whip up an invoice for the logo project I did fo
+  [PASS] rate=0/3 expected=False: write a python script that parses a folder of PDF invoices a
+  [PASS] rate=0/3 expected=False: can you format this spreadsheet of expenses into a nicer tab
+  [PASS] rate=0/3 expected=False: how long should I legally keep copies of invoices for tax au
+  [PASS] rate=0/3 expected=False: can you help me reconcile my Stripe payouts against the invo
+  [PASS] rate=0/3 expected=False: explain the difference between accounts receivable and accou
+  [PASS] rate=0/3 expected=False: write me a receipt template for cash payments at my pop-up s
+Test : 14/24 correct, precision=100% recall=17% accuracy=58% (0.0s)
+  [FAIL] rate=0/3 expected=True: our AP team keeps asking for a PO number on invoices we send
+  [FAIL] rate=1/3 expected=True: my client wants a proforma invoice before we start the kitch
+  [FAIL] rate=0/3 expected=True: past due notice - client hasn't paid invoice #221 that was d
+  [FAIL] rate=1/3 expected=True: I've got this half-finished invoice draft from my bookkeeper
+  [PASS] rate=0/3 expected=False: draft a follow-up email chasing an overdue payment, keep it 
+  [PASS] rate=0/3 expected=False: what's a purchase order and how do I create one in NetSuite
+  [PASS] rate=0/3 expected=False: our invoicing software renewal is due, should we switch from
+  [PASS] rate=0/3 expected=False: what tax rate should I charge a client in Germany for consul
+
+Improving description...
+Proposed (12.3s): Handles anything where the user wants an actual invoice produced, checked, or explained — not just discussed abstractly. Trigger when someone asks you to make, draft, whip up, put together, or send an invoice for a client, project, gig, retainer, or hours worked (even with no mention of "invoice toolkit," just billing details like rate, hours, due date, or payment method). Trigger when someone pastes or describes a draft invoice and asks if it's ready, complete, or missing anything before sending. Trigger for conceptual mix-ups specific to invoices: invoice vs. bill/receipt/purchase order, credit vs. debit invoice, proforma vs. interim, or "what's a better invoice numbering system than what I'm doing now." Do NOT trigger for invoice-adjacent but different tasks: parsing/extracting data from existing invoice files, reconciling payments against invoices, accounting concepts like AR/AP, tax/record-retention rules, or building a receipt/expense template.
+
+============================================================
+Iteration 2/5
+Description: Handles anything where the user wants an actual invoice produced, checked, or explained — not just discussed abstractly. Trigger when someone asks you to make, draft, whip up, put together, or send an invoice for a client, project, gig, retainer, or hours worked (even with no mention of "invoice toolkit," just billing details like rate, hours, due date, or payment method). Trigger when someone pastes or describes a draft invoice and asks if it's ready, complete, or missing anything before sending. Trigger for conceptual mix-ups specific to invoices: invoice vs. bill/receipt/purchase order, credit vs. debit invoice, proforma vs. interim, or "what's a better invoice numbering system than what I'm doing now." Do NOT trigger for invoice-adjacent but different tasks: parsing/extracting data from existing invoice files, reconciling payments against invoices, accounting concepts like AR/AP, tax/record-retention rules, or building a receipt/expense template.
+============================================================
+Train: 19/36 correct, precision=100% recall=6% accuracy=53% (73.3s)
+  [FAIL] rate=1/3 expected=True: make me an invoice for 3 months of my retainer client, $2000
+  [FAIL] rate=0/3 expected=True: is this invoice ready to send: Invoice #88, ACME Corp, $4500
+  [FAIL] rate=0/3 expected=True: quick one - is a 'bill' the same thing as an 'invoice' or is
+  [FAIL] rate=0/3 expected=True: need to number my invoices somehow, right now i just eyeball
+  [FAIL] rate=0/3 expected=True: hey can you whip up an invoice for the logo project I did fo
+  [FAIL] rate=0/3 expected=True: what's the diff between a credit invoice and a debit invoice
+  [PASS] rate=0/3 expected=False: write a python script that parses a folder of PDF invoices a
+  [PASS] rate=0/3 expected=False: can you format this spreadsheet of expenses into a nicer tab
+  [PASS] rate=0/3 expected=False: how long should I legally keep copies of invoices for tax au
+  [PASS] rate=0/3 expected=False: can you help me reconcile my Stripe payouts against the invo
+  [PASS] rate=0/3 expected=False: write me a receipt template for cash payments at my pop-up s
+  [PASS] rate=0/3 expected=False: explain the difference between accounts receivable and accou
+Test : 13/24 correct, precision=100% recall=8% accuracy=54% (0.0s)
+  [FAIL] rate=0/3 expected=True: our AP team keeps asking for a PO number on invoices we send
+  [FAIL] rate=1/3 expected=True: my client wants a proforma invoice before we start the kitch
+  [FAIL] rate=0/3 expected=True: I've got this half-finished invoice draft from my bookkeeper
+  [FAIL] rate=0/3 expected=True: past due notice - client hasn't paid invoice #221 that was d
+  [PASS] rate=0/3 expected=False: draft a follow-up email chasing an overdue payment, keep it 
+  [PASS] rate=0/3 expected=False: what's a purchase order and how do I create one in NetSuite
+  [PASS] rate=0/3 expected=False: our invoicing software renewal is due, should we switch from
+  [PASS] rate=0/3 expected=False: what tax rate should I charge a client in Germany for consul
+
+Improving description...
+Proposed (15.2s): Use for any task centered on an actual invoice: creating one, checking one, or untangling invoice-specific concepts. Triggers include "make/create/draft/whip up/put together an invoice" for a client, project, gig, retainer, or hours worked — even with no other context, just a rate, hours, due date, or payment method. Also triggers when someone pastes or describes an invoice and asks if it's ready to send, complete, correct, or missing something. Also triggers for invoice-specific conceptual questions: invoice vs. bill vs. receipt vs. purchase order, credit invoice vs. debit invoice, proforma vs. interim invoice, or how to number invoices (sequential, by date, by client) instead of ad-hoc/reused numbers. Does NOT trigger for: extracting/parsing data from existing invoice files, reconciling payments against invoices, general accounting (AR/AP), tax or record-retention rules, or building a receipt/expense template unrelated to invoicing.
+
+============================================================
+Iteration 3/5
+Description: Use for any task centered on an actual invoice: creating one, checking one, or untangling invoice-specific concepts. Triggers include "make/create/draft/whip up/put together an invoice" for a client, project, gig, retainer, or hours worked — even with no other context, just a rate, hours, due date, or payment method. Also triggers when someone pastes or describes an invoice and asks if it's ready to send, complete, correct, or missing something. Also triggers for invoice-specific conceptual questions: invoice vs. bill vs. receipt vs. purchase order, credit invoice vs. debit invoice, proforma vs. interim invoice, or how to number invoices (sequential, by date, by client) instead of ad-hoc/reused numbers. Does NOT trigger for: extracting/parsing data from existing invoice files, reconciling payments against invoices, general accounting (AR/AP), tax or record-retention rules, or building a receipt/expense template unrelated to invoicing.
+============================================================
+Train: 20/36 correct, precision=100% recall=11% accuracy=56% (74.5s)
+  [FAIL] rate=0/3 expected=True: quick one - is a 'bill' the same thing as an 'invoice' or is
+  [FAIL] rate=1/3 expected=True: make me an invoice for 3 months of my retainer client, $2000
+  [FAIL] rate=0/3 expected=True: need to number my invoices somehow, right now i just eyeball
+  [FAIL] rate=0/3 expected=True: is this invoice ready to send: Invoice #88, ACME Corp, $4500
+  [FAIL] rate=1/3 expected=True: hey can you whip up an invoice for the logo project I did fo
+  [FAIL] rate=0/3 expected=True: what's the diff between a credit invoice and a debit invoice
+  [PASS] rate=0/3 expected=False: write a python script that parses a folder of PDF invoices a
+  [PASS] rate=0/3 expected=False: can you format this spreadsheet of expenses into a nicer tab
+  [PASS] rate=0/3 expected=False: how long should I legally keep copies of invoices for tax au
+  [PASS] rate=0/3 expected=False: can you help me reconcile my Stripe payouts against the invo
+  [PASS] rate=0/3 expected=False: explain the difference between accounts receivable and accou
+  [PASS] rate=0/3 expected=False: write me a receipt template for cash payments at my pop-up s
+Test : 13/24 correct, precision=100% recall=8% accuracy=54% (0.0s)
+  [FAIL] rate=0/3 expected=True: our AP team keeps asking for a PO number on invoices we send
+  [FAIL] rate=1/3 expected=True: my client wants a proforma invoice before we start the kitch
+  [FAIL] rate=0/3 expected=True: I've got this half-finished invoice draft from my bookkeeper
+  [FAIL] rate=0/3 expected=True: past due notice - client hasn't paid invoice #221 that was d
+  [PASS] rate=0/3 expected=False: what's a purchase order and how do I create one in NetSuite
+  [PASS] rate=0/3 expected=False: draft a follow-up email chasing an overdue payment, keep it 
+  [PASS] rate=0/3 expected=False: what tax rate should I charge a client in Germany for consul
+  [PASS] rate=0/3 expected=False: our invoicing software renewal is due, should we switch from
+
+Improving description...
+Proposed (33.8s): Invoke this skill for anything involving one specific invoice — building it, checking it, or answering a quick question about it. Use it when someone asks you to create, draft, generate, or whip up an invoice for a client, gig, project, retainer, or hours worked, even from just a rate, hours, due date, or payment method with no other context. Use it when someone shares, pastes, or describes an invoice and asks if it's ready to send, complete, correct, or missing something (e.g. "is invoice #88 ready to send"). Use it for quick invoice terminology questions too, even one-liners — is a bill the same as an invoice, credit vs. debit invoice, proforma vs. interim invoice — treat these as invoice questions, not general accounting chat. Use it when someone wants a real invoice numbering system instead of guessing or reusing numbers. Skip this skill for parsing/extracting data from invoice files, payment reconciliation, AR/AP or tax/retention rules, and receipt/expense templates unrelated to invoicing.
+
+============================================================
+Iteration 4/5
+Description: Invoke this skill for anything involving one specific invoice — building it, checking it, or answering a quick question about it. Use it when someone asks you to create, draft, generate, or whip up an invoice for a client, gig, project, retainer, or hours worked, even from just a rate, hours, due date, or payment method with no other context. Use it when someone shares, pastes, or describes an invoice and asks if it's ready to send, complete, correct, or missing something (e.g. "is invoice #88 ready to send"). Use it for quick invoice terminology questions too, even one-liners — is a bill the same as an invoice, credit vs. debit invoice, proforma vs. interim invoice — treat these as invoice questions, not general accounting chat. Use it when someone wants a real invoice numbering system instead of guessing or reusing numbers. Skip this skill for parsing/extracting data from invoice files, payment reconciliation, AR/AP or tax/retention rules, and receipt/expense templates unrelated to invoicing.
+============================================================
+Train: 20/36 correct, precision=100% recall=11% accuracy=56% (73.8s)
+  [FAIL] rate=1/3 expected=True: quick one - is a 'bill' the same thing as an 'invoice' or is
+  [FAIL] rate=1/3 expected=True: is this invoice ready to send: Invoice #88, ACME Corp, $4500
+  [FAIL] rate=0/3 expected=True: need to number my invoices somehow, right now i just eyeball
+  [FAIL] rate=0/3 expected=True: make me an invoice for 3 months of my retainer client, $2000
+  [FAIL] rate=0/3 expected=True: hey can you whip up an invoice for the logo project I did fo
+  [FAIL] rate=0/3 expected=True: what's the diff between a credit invoice and a debit invoice
+  [PASS] rate=0/3 expected=False: write a python script that parses a folder of PDF invoices a
+  [PASS] rate=0/3 expected=False: can you format this spreadsheet of expenses into a nicer tab
+  [PASS] rate=0/3 expected=False: how long should I legally keep copies of invoices for tax au
+  [PASS] rate=0/3 expected=False: can you help me reconcile my Stripe payouts against the invo
+  [PASS] rate=0/3 expected=False: explain the difference between accounts receivable and accou
+  [PASS] rate=0/3 expected=False: write me a receipt template for cash payments at my pop-up s
+Test : 13/24 correct, precision=100% recall=8% accuracy=54% (0.0s)
+  [FAIL] rate=1/3 expected=True: my client wants a proforma invoice before we start the kitch
+  [FAIL] rate=0/3 expected=True: our AP team keeps asking for a PO number on invoices we send
+  [FAIL] rate=0/3 expected=True: I've got this half-finished invoice draft from my bookkeeper
+  [PASS] rate=0/3 expected=False: draft a follow-up email chasing an overdue payment, keep it 
+  [PASS] rate=0/3 expected=False: what's a purchase order and how do I create one in NetSuite
+  [PASS] rate=0/3 expected=False: what tax rate should I charge a client in Germany for consul
+  [FAIL] rate=0/3 expected=True: past due notice - client hasn't paid invoice #221 that was d
+  [PASS] rate=0/3 expected=False: our invoicing software renewal is due, should we switch from
+
+Improving description...
+Proposed (10.2s): Use this skill any time an invoice is the actual subject — making one, checking one, or a fast question about invoice terms. Triggers: "make/create/draft/whip up/put together an invoice" for a client, gig, project, retainer, or hours, even from bare details like rate, hours, due date, or payment method (Venmo, ACH, check) — no need for the word "invoice toolkit" or full context. Also triggers when a draft invoice is pasted or described and the user asks if it's ready to send, complete, or missing something ("is this ready to send", "did I miss anything on invoice #88"). Also triggers for snappy terminology mix-ups: bill vs. invoice, credit vs. debit invoice, proforma vs. interim, or wanting a real invoice numbering scheme instead of eyeballing/reusing numbers. Treat these as invoice questions worth a real answer, not small talk to wave off. Do NOT use for parsing/extracting data from invoice files, payment reconciliation, AR/AP or tax/retention rules, or receipt/expense templates unrelated to invoicing.
+
+============================================================
+Iteration 5/5
+Description: Use this skill any time an invoice is the actual subject — making one, checking one, or a fast question about invoice terms. Triggers: "make/create/draft/whip up/put together an invoice" for a client, gig, project, retainer, or hours, even from bare details like rate, hours, due date, or payment method (Venmo, ACH, check) — no need for the word "invoice toolkit" or full context. Also triggers when a draft invoice is pasted or described and the user asks if it's ready to send, complete, or missing something ("is this ready to send", "did I miss anything on invoice #88"). Also triggers for snappy terminology mix-ups: bill vs. invoice, credit vs. debit invoice, proforma vs. interim, or wanting a real invoice numbering scheme instead of eyeballing/reusing numbers. Treat these as invoice questions worth a real answer, not small talk to wave off. Do NOT use for parsing/extracting data from invoice files, payment reconciliation, AR/AP or tax/retention rules, or receipt/expense templates unrelated to invoicing.
+============================================================
+Train: 20/36 correct, precision=100% recall=11% accuracy=56% (81.8s)
+  [FAIL] rate=0/3 expected=True: is this invoice ready to send: Invoice #88, ACME Corp, $4500
+  [FAIL] rate=0/3 expected=True: make me an invoice for 3 months of my retainer client, $2000
+  [FAIL] rate=1/3 expected=True: quick one - is a 'bill' the same thing as an 'invoice' or is
+  [FAIL] rate=0/3 expected=True: need to number my invoices somehow, right now i just eyeball
+  [FAIL] rate=1/3 expected=True: what's the diff between a credit invoice and a debit invoice
+  [FAIL] rate=0/3 expected=True: hey can you whip up an invoice for the logo project I did fo
+  [PASS] rate=0/3 expected=False: write a python script that parses a folder of PDF invoices a
+  [PASS] rate=0/3 expected=False: can you format this spreadsheet of expenses into a nicer tab
+  [PASS] rate=0/3 expected=False: how long should I legally keep copies of invoices for tax au
+  [PASS] rate=0/3 expected=False: can you help me reconcile my Stripe payouts against the invo
+  [PASS] rate=0/3 expected=False: explain the difference between accounts receivable and accou
+  [PASS] rate=0/3 expected=False: write me a receipt template for cash payments at my pop-up s
+Test : 12/24 correct, precision=100% recall=0% accuracy=50% (0.0s)
+  [FAIL] rate=0/3 expected=True: my client wants a proforma invoice before we start the kitch
+  [FAIL] rate=0/3 expected=True: our AP team keeps asking for a PO number on invoices we send
+  [FAIL] rate=0/3 expected=True: I've got this half-finished invoice draft from my bookkeeper
+  [FAIL] rate=0/3 expected=True: past due notice - client hasn't paid invoice #221 that was d
+  [PASS] rate=0/3 expected=False: draft a follow-up email chasing an overdue payment, keep it 
+  [PASS] rate=0/3 expected=False: what's a purchase order and how do I create one in NetSuite
+  [PASS] rate=0/3 expected=False: what tax rate should I charge a client in Germany for consul
+  [PASS] rate=0/3 expected=False: our invoicing software renewal is due, should we switch from
+
+Max iterations reached (5).
+
+Exit reason: max_iterations (5)
+Best score: 4/8 (iteration 1)
+
+Report: /tmp/skill_description_report_invoice-toolkit_20260802_203400.html
+{
+  "exit_reason": "max_iterations (5)",
+  "original_description": "Everything about invoices \u2014 explaining what they are, generating a new invoice document with correct fields and numbering, and validating a draft invoice against required components. Use this skill whenever the user asks what an invoice is, asks about invoice types (proforma, interim, recurring, credit, debit, time sheet, past due), asks how an invoice differs from a bill, receipt, or purchase order, wants an invoice numbering scheme, wants to create/draft/generate an invoice for a client or project, or wants to check whether an invoice or invoice template is missing required fields before sending it. Trigger even if the user just says \"make me an invoice\" or \"is this invoice ready to send\" without using the word \"toolkit.",
+  "best_description": "Everything about invoices \u2014 explaining what they are, generating a new invoice document with correct fields and numbering, and validating a draft invoice against required components. Use this skill whenever the user asks what an invoice is, asks about invoice types (proforma, interim, recurring, credit, debit, time sheet, past due), asks how an invoice differs from a bill, receipt, or purchase order, wants an invoice numbering scheme, wants to create/draft/generate an invoice for a client or project, or wants to check whether an invoice or invoice template is missing required fields before sending it. Trigger even if the user just says \"make me an invoice\" or \"is this invoice ready to send\" without using the word \"toolkit.",
+  "best_score": "4/8",
+  "best_train_score": "6/12",
+  "best_test_score": "4/8",
+  "final_description": "Use this skill any time an invoice is the actual subject \u2014 making one, checking one, or a fast question about invoice terms. Triggers: \"make/create/draft/whip up/put together an invoice\" for a client, gig, project, retainer, or hours, even from bare details like rate, hours, due date, or payment method (Venmo, ACH, check) \u2014 no need for the word \"invoice toolkit\" or full context. Also triggers when a draft invoice is pasted or described and the user asks if it's ready to send, complete, or missing something (\"is this ready to send\", \"did I miss anything on invoice #88\"). Also triggers for snappy terminology mix-ups: bill vs. invoice, credit vs. debit invoice, proforma vs. interim, or wanting a real invoice numbering scheme instead of eyeballing/reusing numbers. Treat these as invoice questions worth a real answer, not small talk to wave off. Do NOT use for parsing/extracting data from invoice files, payment reconciliation, AR/AP or tax/retention rules, or receipt/expense templates unrelated to invoicing.",
+  "iterations_run": 5,
+  "holdout": 0.4,
+  "train_size": 12,
+  "test_size": 8,
+  "history": [
+    {
+      "iteration": 1,
+      "description": "Everything about invoices \u2014 explaining what they are, generating a new invoice document with correct fields and numbering, and validating a draft invoice against required components. Use this skill whenever the user asks what an invoice is, asks about invoice types (proforma, interim, recurring, credit, debit, time sheet, past due), asks how an invoice differs from a bill, receipt, or purchase order, wants an invoice numbering scheme, wants to create/draft/generate an invoice for a client or project, or wants to check whether an invoice or invoice template is missing required fields before sending it. Trigger even if the user just says \"make me an invoice\" or \"is this invoice ready to send\" without using the word \"toolkit.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "our AP team keeps asking for a PO number on invoices we send - do we actually need a purchase order before we can invoice someone, or is that a separate thing",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "my client wants a proforma invoice before we start the kitchen remodel so they can get financing approved, how is that different from what I'd normally send",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "past due notice - client hasn't paid invoice #221 that was due last month, can you check what should legally/typically be on a past-due invoice vs the original one",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "I've got this half-finished invoice draft from my bookkeeper, can you tell me if it's missing anything before I send it to the client",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "draft a follow-up email chasing an overdue payment, keep it polite but firm",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what's a purchase order and how do I create one in NetSuite",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "our invoicing software renewal is due, should we switch from FreshBooks to Wave",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what tax rate should I charge a client in Germany for consulting services",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "description": "Handles anything where the user wants an actual invoice produced, checked, or explained \u2014 not just discussed abstractly. Trigger when someone asks you to make, draft, whip up, put together, or send an invoice for a client, project, gig, retainer, or hours worked (even with no mention of \"invoice toolkit,\" just billing details like rate, hours, due date, or payment method). Trigger when someone pastes or describes a draft invoice and asks if it's ready, complete, or missing anything before sending. Trigger for conceptual mix-ups specific to invoices: invoice vs. bill/receipt/purchase order, credit vs. debit invoice, proforma vs. interim, or \"what's a better invoice numbering system than what I'm doing now.\" Do NOT trigger for invoice-adjacent but different tasks: parsing/extracting data from existing invoice files, reconciling payments against invoices, accounting concepts like AR/AP, tax/record-retention rules, or building a receipt/expense template.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "our AP team keeps asking for a PO number on invoices we send - do we actually need a purchase order before we can invoice someone, or is that a separate thing",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "my client wants a proforma invoice before we start the kitchen remodel so they can get financing approved, how is that different from what I'd normally send",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "I've got this half-finished invoice draft from my bookkeeper, can you tell me if it's missing anything before I send it to the client",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "past due notice - client hasn't paid invoice #221 that was due last month, can you check what should legally/typically be on a past-due invoice vs the original one",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "draft a follow-up email chasing an overdue payment, keep it polite but firm",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what's a purchase order and how do I create one in NetSuite",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "our invoicing software renewal is due, should we switch from FreshBooks to Wave",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what tax rate should I charge a client in Germany for consulting services",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "description": "Use for any task centered on an actual invoice: creating one, checking one, or untangling invoice-specific concepts. Triggers include \"make/create/draft/whip up/put together an invoice\" for a client, project, gig, retainer, or hours worked \u2014 even with no other context, just a rate, hours, due date, or payment method. Also triggers when someone pastes or describes an invoice and asks if it's ready to send, complete, correct, or missing something. Also triggers for invoice-specific conceptual questions: invoice vs. bill vs. receipt vs. purchase order, credit invoice vs. debit invoice, proforma vs. interim invoice, or how to number invoices (sequential, by date, by client) instead of ad-hoc/reused numbers. Does NOT trigger for: extracting/parsing data from existing invoice files, reconciling payments against invoices, general accounting (AR/AP), tax or record-retention rules, or building a receipt/expense template unrelated to invoicing.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "our AP team keeps asking for a PO number on invoices we send - do we actually need a purchase order before we can invoice someone, or is that a separate thing",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "my client wants a proforma invoice before we start the kitchen remodel so they can get financing approved, how is that different from what I'd normally send",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "I've got this half-finished invoice draft from my bookkeeper, can you tell me if it's missing anything before I send it to the client",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "past due notice - client hasn't paid invoice #221 that was due last month, can you check what should legally/typically be on a past-due invoice vs the original one",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's a purchase order and how do I create one in NetSuite",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "draft a follow-up email chasing an overdue payment, keep it polite but firm",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what tax rate should I charge a client in Germany for consulting services",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "our invoicing software renewal is due, should we switch from FreshBooks to Wave",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 4,
+      "description": "Invoke this skill for anything involving one specific invoice \u2014 building it, checking it, or answering a quick question about it. Use it when someone asks you to create, draft, generate, or whip up an invoice for a client, gig, project, retainer, or hours worked, even from just a rate, hours, due date, or payment method with no other context. Use it when someone shares, pastes, or describes an invoice and asks if it's ready to send, complete, correct, or missing something (e.g. \"is invoice #88 ready to send\"). Use it for quick invoice terminology questions too, even one-liners \u2014 is a bill the same as an invoice, credit vs. debit invoice, proforma vs. interim invoice \u2014 treat these as invoice questions, not general accounting chat. Use it when someone wants a real invoice numbering system instead of guessing or reusing numbers. Skip this skill for parsing/extracting data from invoice files, payment reconciliation, AR/AP or tax/retention rules, and receipt/expense templates unrelated to invoicing.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "my client wants a proforma invoice before we start the kitchen remodel so they can get financing approved, how is that different from what I'd normally send",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "our AP team keeps asking for a PO number on invoices we send - do we actually need a purchase order before we can invoice someone, or is that a separate thing",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "I've got this half-finished invoice draft from my bookkeeper, can you tell me if it's missing anything before I send it to the client",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "draft a follow-up email chasing an overdue payment, keep it polite but firm",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what's a purchase order and how do I create one in NetSuite",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what tax rate should I charge a client in Germany for consulting services",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "past due notice - client hasn't paid invoice #221 that was due last month, can you check what should legally/typically be on a past-due invoice vs the original one",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "our invoicing software renewal is due, should we switch from FreshBooks to Wave",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 5,
+      "description": "Use this skill any time an invoice is the actual subject \u2014 making one, checking one, or a fast question about invoice terms. Triggers: \"make/create/draft/whip up/put together an invoice\" for a client, gig, project, retainer, or hours, even from bare details like rate, hours, due date, or payment method (Venmo, ACH, check) \u2014 no need for the word \"invoice toolkit\" or full context. Also triggers when a draft invoice is pasted or described and the user asks if it's ready to send, complete, or missing something (\"is this ready to send\", \"did I miss anything on invoice #88\"). Also triggers for snappy terminology mix-ups: bill vs. invoice, credit vs. debit invoice, proforma vs. interim, or wanting a real invoice numbering scheme instead of eyeballing/reusing numbers. Treat these as invoice questions worth a real answer, not small talk to wave off. Do NOT use for parsing/extracting data from invoice files, payment reconciliation, AR/AP or tax/retention rules, or receipt/expense templates unrelated to invoicing.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "my client wants a proforma invoice before we start the kitchen remodel so they can get financing approved, how is that different from what I'd normally send",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "our AP team keeps asking for a PO number on invoices we send - do we actually need a purchase order before we can invoice someone, or is that a separate thing",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "I've got this half-finished invoice draft from my bookkeeper, can you tell me if it's missing anything before I send it to the client",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "past due notice - client hasn't paid invoice #221 that was due last month, can you check what should legally/typically be on a past-due invoice vs the original one",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "draft a follow-up email chasing an overdue payment, keep it polite but firm",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what's a purchase order and how do I create one in NetSuite",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "what tax rate should I charge a client in Germany for consulting services",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "our invoicing software renewal is due, should we switch from FreshBooks to Wave",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you format this spreadsheet of expenses into a nicer table",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "how long should I legally keep copies of invoices for tax audit purposes",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "write me a receipt template for cash payments at my pop-up shop",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

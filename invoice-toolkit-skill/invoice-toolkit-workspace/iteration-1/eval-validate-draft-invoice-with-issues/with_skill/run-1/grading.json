@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Flags missing buyer (client) contact details",
+      "passed": true,
+      "evidence": "\"Buyer contact details (missing) ... 'Client' with no address or email isn't enough\""
+    },
+    {
+      "text": "Flags that 'ASAP' is not a valid due date",
+      "passed": true,
+      "evidence": "\"'ASAP' isn't a due date \u2014 it's ambiguous and gives the client no concrete deadline\""
+    },
+    {
+      "text": "Flags missing accepted payment methods",
+      "passed": true,
+      "evidence": "\"Accepted payment methods (missing) ... leaves this blank\""
+    },
+    {
+      "text": "Flags missing tax information",
+      "passed": true,
+      "evidence": "\"Tax information (missing/unclear) ... If you're required to charge sales tax/VAT... it needs to be itemized; if genuinely exempt, that should be stated explicitly\" -- treats it as a hard gap, not optional"
+    },
+    {
+      "text": "Does NOT falsely claim the arithmetic is wrong",
+      "passed": true,
+      "evidence": "\"the line-item math checks out (1200 + 300 = 1500...)\""
+    },
+    {
+      "text": "Explains findings in plain, client-facing language rather than raw JSON dump",
+      "passed": true,
+      "evidence": "Full response is narrative prose with numbered sections, no raw script/JSON output shown"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 6,
+    "failed": 0,
+    "total": 6
+  }
+}

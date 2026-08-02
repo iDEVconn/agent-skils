@@ -1,0 +1,14 @@
+{
+  "eval_id": 1,
+  "eval_name": "generate-consulting-invoice",
+  "prompt": "I need to invoice a client. My business is Solstice Consulting LLC (billing@solsticeconsulting.com). Client is Northwind Traders, 88 Harbor Rd, Portland. I did 3 consulting sessions at $250/hr, 8 hours each, plus a flat $500 setup fee. 15% tax on everything. Payment terms are net 15 from today (2026-08-02). They can pay by wire transfer or PayPal. Use sequential invoice numbering starting at 2001.",
+  "assertions": [
+    "Contains the invoice number 2001",
+    "Contains the correct due date 2026-08-17 (issue date 2026-08-02 + net 15 days)",
+    "Contains the correct subtotal 6500 (3 sessions x 8 hrs x $250 = $6000, + $500 setup fee)",
+    "Contains the correct tax amount 975 (15% of 6500)",
+    "Contains the correct grand total 7475 (6500 + 975)",
+    "Lists both payment methods: wire transfer and PayPal",
+    "Includes both party names: Solstice Consulting (seller) and Northwind Traders (buyer)"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "eval_id": 0,
+  "eval_name": "explain-proforma-vs-bill",
+  "prompt": "quick q - what's actually the difference between a proforma invoice and a normal invoice? and is a \"bill\" just another word for invoice or is there an actual difference? trying to make sure I send my client the right thing before we've shipped anything",
+  "assertions": [
+    "States that a proforma invoice is sent BEFORE delivery, as a preview/estimate rather than a firm payment demand",
+    "Does NOT claim a proforma invoice is issued after delivery or after the work is complete (would be a factual reversal)",
+    "Explains a distinction between 'bill' and 'invoice' rather than claiming they're pure synonyms with no difference (e.g. bill implying faster/immediate payment)",
+    "Explicitly recommends or implies a proforma invoice is the right choice for the user's stated situation (nothing shipped yet)"
+  ]
+}

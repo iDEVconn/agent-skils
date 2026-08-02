@@ -1,0 +1,82 @@
+[
+  {
+    "query": "hey can you whip up an invoice for the logo project I did for Dave's Hardware - 15 hours at $85/hr, due in 2 weeks, they can venmo or check",
+    "should_trigger": true
+  },
+  {
+    "query": "what's the diff between a credit invoice and a debit invoice? I always mix these two up",
+    "should_trigger": true
+  },
+  {
+    "query": "I've got this half-finished invoice draft from my bookkeeper, can you tell me if it's missing anything before I send it to the client",
+    "should_trigger": true
+  },
+  {
+    "query": "my client wants a proforma invoice before we start the kitchen remodel so they can get financing approved, how is that different from what I'd normally send",
+    "should_trigger": true
+  },
+  {
+    "query": "is this invoice ready to send: Invoice #88, ACME Corp, $4500 for consulting, no due date listed yet",
+    "should_trigger": true
+  },
+  {
+    "query": "need to number my invoices somehow, right now i just eyeball it and sometimes reuse numbers by accident lol, whats a better system",
+    "should_trigger": true
+  },
+  {
+    "query": "make me an invoice for 3 months of my retainer client, $2000/mo, they pay by ACH",
+    "should_trigger": true
+  },
+  {
+    "query": "our AP team keeps asking for a PO number on invoices we send - do we actually need a purchase order before we can invoice someone, or is that a separate thing",
+    "should_trigger": true
+  },
+  {
+    "query": "past due notice - client hasn't paid invoice #221 that was due last month, can you check what should legally/typically be on a past-due invoice vs the original one",
+    "should_trigger": true
+  },
+  {
+    "query": "quick one - is a 'bill' the same thing as an 'invoice' or is there a real difference",
+    "should_trigger": true
+  },
+  {
+    "query": "can you help me reconcile my Stripe payouts against the invoices in QuickBooks, the numbers don't match",
+    "should_trigger": false
+  },
+  {
+    "query": "write a python script that parses a folder of PDF invoices and extracts the vendor name and total into a csv",
+    "should_trigger": false
+  },
+  {
+    "query": "what tax rate should I charge a client in Germany for consulting services",
+    "should_trigger": false
+  },
+  {
+    "query": "draft a follow-up email chasing an overdue payment, keep it polite but firm",
+    "should_trigger": false
+  },
+  {
+    "query": "our invoicing software renewal is due, should we switch from FreshBooks to Wave",
+    "should_trigger": false
+  },
+  {
+    "query": "what's a purchase order and how do I create one in NetSuite",
+    "should_trigger": false
+  },
+  {
+    "query": "explain the difference between accounts receivable and accounts payable for my accounting class",
+    "should_trigger": false
+  },
+  {
+    "query": "can you format this spreadsheet of expenses into a nicer table",
+    "should_trigger": false
+  },
+  {
+    "query": "how long should I legally keep copies of invoices for tax audit purposes",
+    "should_trigger": false
+  },
+  {
+    "query": "write me a receipt template for cash payments at my pop-up shop",
+    "should_trigger": false
+  }
+]

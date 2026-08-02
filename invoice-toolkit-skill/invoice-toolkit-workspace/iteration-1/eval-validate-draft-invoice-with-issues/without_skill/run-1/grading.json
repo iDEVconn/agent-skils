@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Flags missing buyer (client) contact details",
+      "passed": true,
+      "evidence": "\"No client contact info... isn't sendable\""
+    },
+    {
+      "text": "Flags that 'ASAP' is not a valid due date",
+      "passed": true,
+      "evidence": "\"'ASAP' is not a payment term \u2014 it's not enforceable\""
+    },
+    {
+      "text": "Flags missing accepted payment methods",
+      "passed": true,
+      "evidence": "\"No payment instructions... means you haven't told them how to pay you\""
+    },
+    {
+      "text": "Flags missing tax information",
+      "passed": false,
+      "evidence": "\"No tax appears to be applied \u2014 fine if you're not required to charge sales tax/VAT, just confirm that's intentional.\" -- treats absence of tax as presumptively fine rather than a required component to confirm/flag as a gap, softer than the reference standard"
+    },
+    {
+      "text": "Does NOT falsely claim the arithmetic is wrong",
+      "passed": true,
+      "evidence": "\"Math checks out: $1200 + $300 = $1500 subtotal and total match.\""
+    },
+    {
+      "text": "Explains findings in plain, client-facing language rather than raw JSON dump",
+      "passed": true,
+      "evidence": "Full response is narrative prose, no raw JSON shown"
+    }
+  ],
+  "summary": {
+    "pass_rate": 0.8333,
+    "passed": 5,
+    "failed": 1,
+    "total": 6
+  }
+}
